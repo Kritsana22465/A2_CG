@@ -1,0 +1,48 @@
+newmtl skin
+Ka 0.160 0.100 0.070
+Kd 0.780 0.520 0.360
+Ks 0.180 0.180 0.180
+Ns 24.000
+map_Kd ../Textures/char_texture.png
+
+newmtl hair
+Ka 0.025 0.020 0.018
+Kd 0.105 0.075 0.055
+Ks 0.080 0.080 0.080
+Ns 12.000
+map_Kd ../Textures/char_texture.png
+
+newmtl shirt
+Ka 0.035 0.075 0.110
+Kd 0.170 0.360 0.520
+Ks 0.120 0.120 0.120
+Ns 18.000
+map_Kd ../Textures/char_texture.png
+
+newmtl pants
+Ka 0.025 0.030 0.045
+Kd 0.105 0.125 0.180
+Ks 0.080 0.080 0.080
+Ns 12.000
+map_Kd ../Textures/char_texture.png
+
+newmtl shoes
+Ka 0.018 0.015 0.012
+Kd 0.075 0.055 0.040
+Ks 0.100 0.100 0.100
+Ns 20.000
+map_Kd ../Textures/char_texture.png
+
+newmtl leather
+Ka 0.060 0.025 0.010
+Kd 0.300 0.115 0.035
+Ks 0.140 0.100 0.070
+Ns 18.000
+map_Kd ../Textures/char_texture.png
+
+newmtl eyes
+Ka 0.008 0.008 0.008
+Kd 0.025 0.020 0.018
+Ks 0.180 0.180 0.180
+Ns 28.000
+map_Kd ../Textures/char_texture.png

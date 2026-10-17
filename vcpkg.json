@@ -1,0 +1,6 @@
+{
+  "name": "opengl-starter",
+  "version": "1.0.0",
+  "builtin-baseline": "e99d87dcf02926bfd629560e11e156329d5720c1",
+  "dependencies": [ "glew", "glfw3", "glm" ]
+}
