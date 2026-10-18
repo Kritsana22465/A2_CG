@@ -40,7 +40,7 @@ float calculateShadow(vec3 normal, vec3 lightDirection)
 
 vec3 ambientLight()
 {
-    float ambientStrength = 0.2f;
+    float ambientStrength = 0.45f;
     return lightColour * ambientStrength;
 }
 

@@ -24,6 +24,7 @@ CMakeUserPresets.json
 !Models/ar_whip_man.obj
 !Models/ai_kneeling_workers.obj
 !Models/scene_room.obj
+!Models/cube.obj
 *.o
 *.a
 

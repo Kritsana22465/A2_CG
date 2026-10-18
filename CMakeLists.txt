@@ -102,6 +102,11 @@ add_executable(Assignment2_67050019
   src/Libs/Window.cpp
 )
 
+add_executable(generate_office
+  tools/generate_office.cpp
+)
+
+
 target_include_directories(OpenGLStarter PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/src
   ${CMAKE_CURRENT_SOURCE_DIR}/src/Libs

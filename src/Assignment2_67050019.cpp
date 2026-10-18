@@ -22,6 +22,7 @@ std::vector<Mesh *> meshList;
 std::vector<Shader *> shaderList; // [0] mainShader, [1] lightShader, [2] bgShader, [3] depthShader
 GLuint characterTexture = 0;
 GLuint aiTexture = 0;
+GLuint roomTexture = 0;
 
 const std::filesystem::path shaderDirectory =
     std::filesystem::u8path(OPENGL_STARTER_SHADER_DIR);
@@ -267,7 +268,8 @@ int main()
     CreateOBJ();
     CreateShaders();
     if (!LoadTexture("Textures/char_texture.png", characterTexture) ||
-        !LoadTexture("Textures/ai_kneeling_workers.png", aiTexture))
+        !LoadTexture("Textures/ai_kneeling_workers.png", aiTexture) ||
+        !LoadTexture("Textures/scene_room.bmp", roomTexture))
         return 1;
 
     // ------------------------------------------------------------------------
@@ -344,20 +346,6 @@ int main()
             0.1f, 100.0f);
         glm::mat4 view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
 
-        // Render the pale-blue interior of the closed cube room.
-        shaderList[2]->UseShader(); // bgShader
-        glUniformMatrix4fv(shaderList[2]->GetUniformLocation("model"), 1, GL_FALSE, glm::value_ptr(glm::mat4(1.0f)));
-        glUniformMatrix4fv(shaderList[2]->GetUniformLocation("view"), 1, GL_FALSE, glm::value_ptr(view));
-        glUniformMatrix4fv(shaderList[2]->GetUniformLocation("projection"), 1, GL_FALSE, glm::value_ptr(projection));
-        glUniformMatrix4fv(shaderList[2]->GetUniformLocation("lightProjection"), 1, GL_FALSE, glm::value_ptr(lightProjection));
-        glUniformMatrix4fv(shaderList[2]->GetUniformLocation("lightView"), 1, GL_FALSE, glm::value_ptr(lightView));
-        glUniform3fv(shaderList[2]->GetUniformLocation("bgColour"), 1, glm::value_ptr(bgColour));
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, depthMap);
-        glUniform1i(shaderList[2]->GetUniformLocation("shadowMap"), 0);
-        if (meshList.size() > 3)
-            meshList[3]->RenderMesh();
-
         // 1. Render Character and kneeling AI
         shaderList[0]->UseShader(); // mainShader
         glUniform3fv(shaderList[0]->GetUniformLocation("lightColour"), 1, glm::value_ptr(lightColour));
@@ -371,18 +359,34 @@ int main()
 
         RenderScene(view, projection);
 
-        // 2. Render three ceiling light fixtures.
+        // 2. Render Office Scene Room (Walls, Furniture, Window, Whiteboard, Props)
+        if (meshList.size() > 3)
+        {
+            glm::mat4 roomModel(1.0f);
+            glUniformMatrix4fv(shaderList[0]->GetUniformLocation("model"), 1, GL_FALSE, glm::value_ptr(roomModel));
+            glUniformMatrix4fv(shaderList[0]->GetUniformLocation("view"), 1, GL_FALSE, glm::value_ptr(view));
+            glUniformMatrix4fv(shaderList[0]->GetUniformLocation("projection"), 1, GL_FALSE, glm::value_ptr(projection));
+
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, roomTexture);
+            glUniform1i(shaderList[0]->GetUniformLocation("texture1"), 0);
+            glUniform1i(shaderList[0]->GetUniformLocation("useTexture"), GL_TRUE);
+
+            meshList[3]->RenderMesh();
+        }
+
+        // 3. Render three ceiling light fixtures.
         shaderList[1]->UseShader(); // lightShader
         glUniformMatrix4fv(shaderList[1]->GetUniformLocation("view"), 1, GL_FALSE, glm::value_ptr(view));
         glUniformMatrix4fv(shaderList[1]->GetUniformLocation("projection"), 1, GL_FALSE, glm::value_ptr(projection));
-        glUniform3f(shaderList[1]->GetUniformLocation("lightColour"), 0.82f, 0.94f, 1.0f);
+        glUniform3f(shaderList[1]->GetUniformLocation("lightColour"), 1.0f, 1.0f, 1.0f);
         if (meshList.size() > 2)
         {
             for (float x : {-1.5f, 0.8f, 3.1f})
             {
                 glm::mat4 lightModel(1.0f);
-                lightModel = glm::translate(lightModel, glm::vec3(x, 1.60f, -2.0f));
-                lightModel = glm::scale(lightModel, glm::vec3(1.4f, 0.08f, 0.42f));
+                lightModel = glm::translate(lightModel, glm::vec3(x, 1.66f, -2.0f));
+                lightModel = glm::scale(lightModel, glm::vec3(1.4f, 0.06f, 0.42f));
                 glUniformMatrix4fv(shaderList[1]->GetUniformLocation("model"), 1, GL_FALSE, glm::value_ptr(lightModel));
                 meshList[2]->RenderMesh();
             }
