@@ -291,22 +291,22 @@ struct OBJBuilder {
         Vec2 uv01(uv.u0, uv.v1);
 
         if (!insideNormals) {
-            // Front face (+Z)
+            // Front (+Z)
             addQuad(Vec3(minX, minY, maxZ), Vec3(maxX, minY, maxZ), Vec3(maxX, maxY, maxZ), Vec3(minX, maxY, maxZ),
                     uv00, uv10, uv11, uv01, Vec3(0, 0, 1.0f * s));
-            // Back face (-Z)
+            // Back (-Z)
             addQuad(Vec3(maxX, minY, minZ), Vec3(minX, minY, minZ), Vec3(minX, maxY, minZ), Vec3(maxX, maxY, minZ),
                     uv00, uv10, uv11, uv01, Vec3(0, 0, -1.0f * s));
-            // Left face (-X)
+            // Left (-X)
             addQuad(Vec3(minX, minY, minZ), Vec3(minX, minY, maxZ), Vec3(minX, maxY, maxZ), Vec3(minX, maxY, minZ),
                     uv00, uv10, uv11, uv01, Vec3(-1.0f * s, 0, 0));
-            // Right face (+X)
+            // Right (+X)
             addQuad(Vec3(maxX, minY, maxZ), Vec3(maxX, minY, minZ), Vec3(maxX, maxY, minZ), Vec3(maxX, maxY, maxZ),
                     uv00, uv10, uv11, uv01, Vec3(1.0f * s, 0, 0));
-            // Top face (+Y)
+            // Top (+Y)
             addQuad(Vec3(minX, maxY, maxZ), Vec3(maxX, maxY, maxZ), Vec3(maxX, maxY, minZ), Vec3(minX, maxY, minZ),
                     uv00, uv10, uv11, uv01, Vec3(0, 1.0f * s, 0));
-            // Bottom face (-Y)
+            // Bottom (-Y)
             addQuad(Vec3(minX, minY, minZ), Vec3(maxX, minY, minZ), Vec3(maxX, minY, maxZ), Vec3(minX, minY, maxZ),
                     uv00, uv10, uv11, uv01, Vec3(0, -1.0f * s, 0));
         } else {
@@ -352,7 +352,7 @@ struct OBJBuilder {
         std::ofstream out(filename);
         if (!out) return false;
 
-        out << "# Procedural Tech Office Scene Room with High-End Battlestation Computer\n";
+        out << "# Procedural Tech Office Scene Room with AI Workstation Battlestations\n";
         out << "o OfficeSceneRoom\n\n";
 
         for (const auto& v : vertices) {
@@ -382,29 +382,70 @@ struct OBJBuilder {
     }
 };
 
+// ----------------------------------------------------------------------------
+// Clean up old retro screens from Models/ai_kneeling_workers.obj
+// ----------------------------------------------------------------------------
+void cleanAIWorkersOBJ(const std::string& path) {
+    std::ifstream in(path);
+    if (!in) {
+        std::cerr << "[cleanAIWorkersOBJ] Could not open " << path << "\n";
+        return;
+    }
+
+    std::vector<std::string> lines;
+    std::string line;
+    bool inOldScreens = false;
+    int modifiedFaces = 0;
+
+    while (std::getline(in, line)) {
+        if (line.rfind("g Console_Screen", 0) == 0 || line.rfind("g Console_Key", 0) == 0) {
+            inOldScreens = true;
+        } else if (line.rfind("g KneelingAI", 0) == 0 || line.rfind("g Console_Main", 0) == 0 || line.rfind("g Console_Keyboard", 0) == 0) {
+            inOldScreens = false;
+        }
+
+        if (inOldScreens && line.rfind("f ", 0) == 0) {
+            lines.push_back("# " + line);
+            modifiedFaces++;
+        } else {
+            lines.push_back(line);
+        }
+    }
+    in.close();
+
+    std::ofstream out(path);
+    for (const auto& l : lines) {
+        out << l << "\n";
+    }
+    std::cout << "[cleanAIWorkersOBJ] Cleaned " << modifiedFaces << " old console face lines from " << path << "\n";
+}
+
 int main() {
-    std::cout << "[generate_office] Generating HD 2048x2048 textures and upgraded Computer Battlestation...\n";
+    std::cout << "[generate_office] Generating textures and upgrading AI Worker Battlestation Computers...\n";
+
+    // Clean old primitive screens from ai_kneeling_workers.obj
+    cleanAIWorkersOBJ("Models/ai_kneeling_workers.obj");
 
     Image img;
 
     // ========================================================================
     // UV Layout Map (2048x2048)
-    // [0..1023, 0..1023]       : Wood Parquet Flooring (0.0..0.5, 0.0..0.5)
+    // [0..1023, 0..1023]       : Brown Wood Parquet Flooring (0.0..0.5, 0.0..0.5)
     // [1024..2047, 0..1023]    : Agile Scrum Whiteboard (0.5..1.0, 0.0..0.5)
     // [0..1023, 1024..2047]    : Panoramic Window City Skyline View (0.0..0.5, 0.5..1.0)
     // [1024..1279, 1024..1535] : Primary Monitor (VS Code IDE HD) (0.50..0.625, 0.50..0.75)
     // [1280..1535, 1024..1535] : Secondary Monitor (System Telemetry & Graphs) (0.625..0.75, 0.50..0.75)
     // [1536..1791, 1024..1279] : PC Case Front Mesh with 3 Glowing RGB Fans (0.75..0.875, 0.50..0.625)
     // [1792..2047, 1024..1279] : PC Case Tempered Glass Side Window (GPU/RAM/Liquid Cooler) (0.875..1.0, 0.50..0.625)
-    // [1536..1791, 1280..1535] : Custom Mechanical Keyboard & Stream Deck (0.75..0.875, 0.625..0.75)
-    // [1792..2047, 1280..1535] : Studio Monitor Speakers & Headphone Earcups (0.875..1.0, 0.625..0.75)
-    // [1024..1279, 1536..2047] : Office Door, Warning Plaque (0.50..0.625, 0.75..1.0)
+    // [1536..1791, 1280..1535] : Custom Mechanical Keyboard (0.75..0.875, 0.625..0.75)
+    // [1792..2047, 1280..1535] : Studio Monitor Speakers (0.875..1.0, 0.625..0.75)
+    // [1024..1279, 1536..2047] : Clean Office Wooden Door (0.50..0.625, 0.75..1.0) (NO PLAQUE!)
     // [1280..1407, 1536..1663] : Office Wall Clock (0.625..0.6875, 0.75..0.8125)
     // [1280..1535, 1664..2047] : Tech Vision Poster (0.625..0.75, 0.8125..1.0)
     // [1536..1791, 1536..1791] : Bookshelf Spines & Binders (0.75..0.875, 0.75..0.875)
     // [1792..2047, 1536..1791] : Dark Executive Desk Wood (0.875..1.0, 0.75..0.875)
-    // [1536..1791, 1792..1919] : Designer Area Rug (0.75..0.875, 0.875..0.9375)
-    // [1792..2047, 1792..1855] : Caution Hazard Strip (0.875..1.0, 0.875..0.90625)
+    // [1536..1791, 1792..1919] : Desk Mat Surface (0.75..0.875, 0.875..0.9375)
+    // [1792..2047, 1792..1855] : Aluminum Trim (0.875..1.0, 0.875..0.90625)
     // [1792..1919, 1856..1983] : Plant Foliage (0.875..0.9375, 0.90625..0.96875)
     // [1920..2047, 1856..1983] : Drywall Tint (0.9375..1.0, 0.90625..0.96875)
     // [1536..1791, 1920..2047] : Acoustic Ceiling Grid (0.75..0.875, 0.9375..1.0)
@@ -412,60 +453,97 @@ int main() {
     // ========================================================================
 
     // ------------------------------------------------------------------------
-    // 1. Wood Parquet Flooring [0..1023, 0..1023]
+    // 1. Brown Wood Parquet Flooring [0..1023, 0..1023] (Seamless Wood Planks)
     // ------------------------------------------------------------------------
-    img.fillRect(0, 0, 1023, 1023, 195, 155, 120);
+    img.fillRect(0, 0, 1023, 1023, 140, 105, 75);
     for (int y = 0; y < 1024; y += 64) {
-        for (int x = 0; x < 1024; x += 128) {
-            int offset = (y / 64) % 2 == 0 ? 0 : 64;
-            int px = (x + offset) % 1024;
-            uint8_t tint = 180 + ((x * 19 + y * 37) % 35);
-            img.fillRect(px, y, (px + 127) % 1024, y + 60, tint, (uint8_t)(tint * 0.82f), (uint8_t)(tint * 0.62f));
-            img.drawRectOutline(px, y, (px + 127) % 1024, y + 60, 2, 135, 100, 70);
+        int offset = (y / 64) % 2 == 0 ? 0 : 64;
+        for (int x = -128; x <= 1024 + 128; x += 128) {
+            int px0 = x + offset + 2;
+            int px1 = px0 + 124;
+            int py0 = y + 2;
+            int py1 = y + 62;
+
+            uint8_t baseR = 195 + (((x + 256) * 19 + y * 37) % 25);
+            uint8_t baseG = (uint8_t)(baseR * 0.79f);
+            uint8_t baseB = (uint8_t)(baseR * 0.58f);
+
+            img.fillRect(px0, py0, px1, py1, baseR, baseG, baseB);
+
+            for (int gy = py0 + 12; gy < py1; gy += 14) {
+                uint8_t grR = baseR - 10;
+                uint8_t grG = (uint8_t)(grR * 0.79f);
+                uint8_t grB = (uint8_t)(grR * 0.58f);
+                img.drawHLine(px0 + 4, px1 - 4, gy, grR, grG, grB);
+            }
+            img.drawRectOutline(px0, py0, px1, py1, 2, 120, 90, 62);
         }
     }
 
     // ------------------------------------------------------------------------
     // 2. Agile Scrum Whiteboard [1024..2047, 0..1023]
+    // Clean stylized graphic rectangle bars ("ขีดสี่เหลี่ยม") as requested!
     // ------------------------------------------------------------------------
     img.fillRect(1024, 0, 2047, 1023, 248, 250, 252);
-    img.drawRectOutline(1024, 0, 2047, 1023, 16, 160, 165, 172);
-    img.drawHLine(1040, 2030, 120, 40, 60, 120);
-    img.drawVLine(1360, 120, 980, 180, 185, 190);
-    img.drawVLine(1700, 120, 980, 180, 185, 190);
+    img.drawRectOutline(1024, 0, 2047, 1023, 8, 160, 165, 172);
 
-    img.drawString(1060, 40, "AI LAB SPRINT 42: PROD DEPLOYMENT", 4, 25, 45, 100);
-    img.drawString(1120, 150, "TODO", 4, 180, 30, 30);
-    img.drawString(1430, 150, "IN PROGRESS", 4, 200, 130, 20);
-    img.drawString(1820, 150, "DONE", 4, 30, 150, 40);
+    // Title Header Bars (Clean geometric bars)
+    img.fillRect(1080, 935, 1260, 955, 30, 45, 90);
+    img.fillRect(1280, 937, 1460, 953, 45, 65, 120);
+    img.fillRect(1480, 939, 1640, 951, 65, 85, 140);
+    img.drawHLine(1040, 2030, 910, 40, 60, 120);
 
-    // Sticky Notes
-    img.fillRect(1060, 220, 1200, 320, 255, 240, 130);
-    img.drawString(1070, 240, "TRAIN LLM", 2, 50, 50, 50);
-    img.drawString(1070, 270, "EPOCH 1000", 2, 50, 50, 50);
+    // Column Header Bars (TODO / IN PROGRESS / DONE)
+    img.fillRect(1120, 842, 1260, 866, 200, 40, 40);  // Red (TODO)
+    img.fillRect(1440, 842, 1620, 866, 220, 135, 20); // Orange (IN PROGRESS)
+    img.fillRect(1780, 842, 1940, 866, 35, 160, 50);  // Green (DONE)
 
-    img.fillRect(1210, 220, 1350, 320, 255, 170, 180);
-    img.drawString(1220, 240, "FIX LOSS", 2, 50, 50, 50);
-    img.drawString(1220, 270, "SPIKE #99", 2, 50, 50, 50);
+    img.drawVLine(1360, 180, 910, 180, 185, 190);
+    img.drawVLine(1700, 180, 910, 180, 185, 190);
 
-    img.fillRect(1400, 220, 1540, 320, 255, 200, 100);
-    img.drawString(1410, 240, "SUPERVISE", 2, 50, 50, 50);
-    img.drawString(1410, 270, "AI WORKERS", 2, 50, 50, 50);
+    // Helper lambda to draw clean placeholder text bars on sticky notes
+    auto drawStickyBars = [&](int px0, int py0, int px1, int py1) {
+        int noteMid = (py0 + py1) / 2;
+        img.fillRect(px0 + 12, noteMid + 14, px1 - 16, noteMid + 22, 55, 55, 60);
+        img.fillRect(px0 + 12, noteMid - 4,  px1 - 32, noteMid + 4,  65, 65, 70);
+        img.fillRect(px0 + 12, noteMid - 22, px1 - 48, noteMid - 14, 75, 75, 80);
+    };
 
-    img.fillRect(1550, 220, 1690, 320, 255, 255, 120);
-    img.drawString(1560, 240, "PHONG BLINN", 2, 50, 50, 50);
-    img.drawString(1560, 270, "SHADOW MAP", 2, 50, 50, 50);
+    // Sticky Notes (Colored cards with neat rectangular text bars)
+    // Column 1 (TODO)
+    img.fillRect(1080, 680, 1220, 780, 255, 240, 130);
+    drawStickyBars(1080, 680, 1220, 780);
 
-    img.fillRect(1740, 220, 1880, 320, 180, 245, 180);
-    img.drawString(1750, 240, "BATTLESTATION", 2, 50, 50, 50);
-    img.drawString(1750, 270, "PC SETUP OK", 2, 50, 50, 50);
+    img.fillRect(1230, 680, 1340, 780, 255, 170, 180);
+    drawStickyBars(1230, 680, 1340, 780);
 
-    img.fillRect(1890, 220, 2030, 320, 180, 245, 180);
-    img.drawString(1900, 240, "BREW COFFEE", 2, 50, 50, 50);
-    img.drawString(1900, 270, "100 PCT PASS", 2, 50, 50, 50);
+    img.fillRect(1080, 550, 1220, 650, 160, 230, 255);
+    drawStickyBars(1080, 550, 1220, 650);
 
-    img.drawString(1080, 740, "DEADLINE: 11:59 PM TONIGHT!", 4, 220, 30, 30);
-    img.drawString(1080, 800, "CRUNCH TIME - NO SLEEP!", 4, 220, 30, 30);
+    // Column 2 (IN PROGRESS)
+    img.fillRect(1390, 680, 1530, 780, 255, 200, 100);
+    drawStickyBars(1390, 680, 1530, 780);
+
+    img.fillRect(1540, 680, 1680, 780, 255, 255, 120);
+    drawStickyBars(1540, 680, 1680, 780);
+
+    img.fillRect(1390, 550, 1530, 650, 200, 255, 160);
+    drawStickyBars(1390, 550, 1530, 650);
+
+    // Column 3 (DONE)
+    img.fillRect(1730, 680, 1870, 780, 180, 245, 180);
+    drawStickyBars(1730, 680, 1870, 780);
+
+    img.fillRect(1880, 680, 2020, 780, 180, 245, 180);
+    drawStickyBars(1880, 680, 2020, 780);
+
+    img.fillRect(1730, 550, 1870, 650, 180, 245, 180);
+    drawStickyBars(1730, 550, 1870, 650);
+
+    // Bottom Deadline section
+    img.drawHLine(1040, 2030, 160, 200, 50, 50);
+    img.fillRect(1080, 85, 1520, 108, 220, 35, 35);
+    img.fillRect(1080, 48, 1360, 68, 190, 45, 45);
 
     // ------------------------------------------------------------------------
     // 3. Panoramic Window City Skyline View [0..1023, 1024..2047]
@@ -477,14 +555,12 @@ int main() {
         uint8_t skyB = (uint8_t)(245 + t * 10);
         img.drawHLine(0, 1023, y, skyR, skyG, skyB);
     }
-    // Clouds
     img.fillCircle(240, 1700, 80, 255, 255, 255);
     img.fillCircle(320, 1720, 100, 255, 255, 255);
     img.fillCircle(400, 1700, 70, 255, 255, 255);
     img.fillCircle(760, 1760, 90, 255, 255, 255);
     img.fillCircle(860, 1780, 110, 255, 255, 255);
 
-    // City Skyscrapers
     int bldHeights[] = { 640, 480, 760, 580, 820, 520, 700, 600, 440 };
     int bldWidths[]  = { 110, 90,  130, 100, 140, 110, 120, 100, 120 };
     int curBx = 20;
@@ -507,295 +583,308 @@ int main() {
     }
 
     // ------------------------------------------------------------------------
-    // 4. Primary Monitor: VS Code IDE (HD) [1024..1279, 1024..1535]
+    // 4. Primary Monitor: VS Code IDE (HD Code Bars) [1024..1279, 1024..1535]
     // ------------------------------------------------------------------------
     int sc1X0 = 1024, sc1Y0 = 1024, sc1X1 = 1279, sc1Y1 = 1535;
-    img.fillRect(sc1X0, sc1Y0, sc1X1, sc1Y1, 30, 30, 30); // Background
-    // Top Tab bar
-    img.fillRect(sc1X0, sc1Y0, sc1X1, sc1Y0 + 28, 45, 45, 48);
-    img.fillRect(sc1X0 + 10, sc1Y0 + 4, sc1X0 + 110, sc1Y0 + 26, 30, 30, 30);
-    img.drawString(sc1X0 + 18, sc1Y0 + 10, "main.cpp", 1, 230, 230, 230);
-    img.drawString(sc1X0 + 98, sc1Y0 + 10, "x", 1, 150, 150, 150);
-    img.drawString(sc1X0 + 125, sc1Y0 + 10, "shader.frag", 1, 160, 160, 160);
+    img.fillRect(sc1X0, sc1Y0, sc1X1, sc1Y1, 30, 30, 30);
+    // Tab bar at top
+    img.fillRect(sc1X0, sc1Y1 - 28, sc1X1, sc1Y1, 45, 45, 48);
+    img.fillRect(sc1X0 + 10, sc1Y1 - 26, sc1X0 + 110, sc1Y1 - 4, 30, 30, 30);
+    img.fillRect(sc1X0 + 18, sc1Y1 - 18, sc1X0 + 80, sc1Y1 - 12, 100, 200, 255); // Cyan active tab bar
+    img.fillRect(sc1X0 + 125, sc1Y1 - 18, sc1X0 + 190, sc1Y1 - 12, 140, 145, 155); // Inactive tab bar
 
-    // Left Activity Bar & File Tree
-    img.fillRect(sc1X0, sc1Y0 + 28, sc1X0 + 16, sc1Y1 - 20, 51, 51, 51);
-    img.fillRect(sc1X0 + 16, sc1Y0 + 28, sc1X0 + 45, sc1Y1 - 20, 37, 37, 38);
-    img.drawString(sc1X0 + 20, sc1Y0 + 34, "SRC", 1, 180, 180, 180);
-    img.drawString(sc1X0 + 20, sc1Y0 + 46, "LIBS", 1, 150, 150, 150);
-    img.drawString(sc1X0 + 20, sc1Y0 + 58, "SHAD", 1, 150, 150, 150);
+    // Explorer Sidebar
+    img.fillRect(sc1X0, sc1Y0 + 20, sc1X0 + 16, sc1Y1 - 28, 51, 51, 51);
+    img.fillRect(sc1X0 + 16, sc1Y0 + 20, sc1X0 + 45, sc1Y1 - 28, 37, 37, 38);
+    img.fillRect(sc1X0 + 20, sc1Y1 - 46, sc1X0 + 40, sc1Y1 - 40, 160, 170, 185);
+    img.fillRect(sc1X0 + 20, sc1Y1 - 58, sc1X0 + 38, sc1Y1 - 52, 130, 140, 150);
 
-    // Line Numbers & Code
+    // Syntax-Highlighted Code Lines (Clean rectangular code tokens)
     int codeX = sc1X0 + 52;
-    int lineY = sc1Y0 + 36;
+    int lineY = sc1Y1 - 48;
     int lineSpacing = 16;
-
-    img.drawString(codeX, lineY, "01  #include <GL/glew.h>", 1, 160, 160, 160); lineY += lineSpacing;
-    img.drawString(codeX, lineY, "02  #include \"Libs/Shader.h\"", 1, 206, 145, 120); lineY += lineSpacing;
-    img.drawString(codeX, lineY, "03  // --- AI Worker Controller ---", 1, 106, 153, 85); lineY += lineSpacing;
-    img.drawString(codeX, lineY, "04  void TrainModel() {", 1, 86, 156, 214); lineY += lineSpacing;
-    img.drawString(codeX, lineY, "05    auto ai = LoadWorker();", 1, 220, 220, 170); lineY += lineSpacing;
-    img.drawString(codeX, lineY, "06    ai->KneelAndCode();", 1, 78, 201, 176); lineY += lineSpacing;
-    img.drawString(codeX, lineY, "07    float loss = 0.0001f;", 1, 181, 206, 168); lineY += lineSpacing;
-    img.drawString(codeX, lineY, "08    if (loss > 0.05f) {", 1, 197, 134, 192); lineY += lineSpacing;
-    img.drawString(codeX, lineY, "09      Boss->RaiseWhip();", 1, 220, 180, 100); lineY += lineSpacing;
-    img.drawString(codeX, lineY, "10    }", 1, 220, 220, 220); lineY += lineSpacing;
-    img.drawString(codeX, lineY, "11    RenderScene(view, proj);", 1, 220, 220, 170); lineY += lineSpacing;
-    img.drawString(codeX, lineY, "12  }", 1, 86, 156, 214); lineY += lineSpacing;
-
-    // Mini-map on right
-    img.fillRect(sc1X1 - 18, sc1Y0 + 28, sc1X1 - 2, sc1Y1 - 20, 35, 35, 38);
-    for (int my = sc1Y0 + 35; my < sc1Y1 - 40; my += 6) {
-        img.drawHLine(sc1X1 - 16, sc1X1 - 6, my, 80, 120, 180);
+    for (int l = 0; l < 11; ++l) {
+        // Line number block
+        img.fillRect(codeX, lineY + 2, codeX + 10, lineY + 9, 85, 90, 100);
+        int curX = codeX + 16;
+        if (l == 0 || l == 1) { // #include <...>
+            img.fillRect(curX, lineY + 2, curX + 28, lineY + 9, 197, 134, 192); curX += 34;
+            img.fillRect(curX, lineY + 2, curX + 55, lineY + 9, 206, 145, 120);
+        } else if (l == 2) { // comment
+            img.fillRect(curX, lineY + 2, curX + 75, lineY + 9, 106, 153, 85);
+        } else if (l == 3) { // void TrainModel()
+            img.fillRect(curX, lineY + 2, curX + 24, lineY + 9, 86, 156, 214); curX += 30;
+            img.fillRect(curX, lineY + 2, curX + 50, lineY + 9, 220, 220, 170);
+        } else if (l == 4) { // indent + auto ai = ...
+            curX += 16;
+            img.fillRect(curX, lineY + 2, curX + 22, lineY + 9, 86, 156, 214); curX += 28;
+            img.fillRect(curX, lineY + 2, curX + 18, lineY + 9, 156, 220, 254); curX += 24;
+            img.fillRect(curX, lineY + 2, curX + 48, lineY + 9, 220, 220, 170);
+        } else if (l == 5) { // indent + ai->Run();
+            curX += 16;
+            img.fillRect(curX, lineY + 2, curX + 20, lineY + 9, 156, 220, 254); curX += 26;
+            img.fillRect(curX, lineY + 2, curX + 42, lineY + 9, 220, 220, 170);
+        } else if (l == 6) { // indent + float loss = ...
+            curX += 16;
+            img.fillRect(curX, lineY + 2, curX + 24, lineY + 9, 86, 156, 214); curX += 30;
+            img.fillRect(curX, lineY + 2, curX + 22, lineY + 9, 156, 220, 254); curX += 28;
+            img.fillRect(curX, lineY + 2, curX + 35, lineY + 9, 181, 206, 168);
+        } else if (l == 7) { // indent + if (...)
+            curX += 16;
+            img.fillRect(curX, lineY + 2, curX + 18, lineY + 9, 197, 134, 192); curX += 24;
+            img.fillRect(curX, lineY + 2, curX + 38, lineY + 9, 156, 220, 254);
+        } else if (l == 8) { // double indent
+            curX += 32;
+            img.fillRect(curX, lineY + 2, curX + 45, lineY + 9, 220, 180, 100);
+        } else {
+            curX += (l % 2 == 0 ? 16 : 0);
+            img.fillRect(curX, lineY + 2, curX + 35, lineY + 9, 86, 156, 214); curX += 40;
+            img.fillRect(curX, lineY + 2, curX + 40, lineY + 9, 220, 220, 170);
+        }
+        lineY -= lineSpacing;
     }
 
-    // Terminal Panel at bottom
-    img.fillRect(sc1X0, sc1Y1 - 120, sc1X1, sc1Y1 - 20, 24, 24, 24);
-    img.drawHLine(sc1X0, sc1X1, sc1Y1 - 120, 60, 60, 65);
-    img.drawString(sc1X0 + 8, sc1Y1 - 112, "TERMINAL: MSBUILD DEBUG x64", 1, 78, 201, 176);
-    img.drawString(sc1X0 + 8, sc1Y1 - 96,  "[OK] Assignment2.exe built (0 warnings)", 1, 100, 255, 100);
-    img.drawString(sc1X0 + 8, sc1Y1 - 80,  "[GL] Shaders compiled: Phong + Shadow PCF", 1, 220, 220, 220);
-    img.drawString(sc1X0 + 8, sc1Y1 - 64,  "[GL] Framebuffer 1024x1024 active", 1, 220, 220, 220);
-    img.drawString(sc1X0 + 8, sc1Y1 - 48,  "[FPS] 60.0 FPS | VSync: ON", 1, 100, 200, 255);
-    img.drawString(sc1X0 + 8, sc1Y1 - 32,  "agent@dev-rig:~$ _", 1, 255, 255, 255);
+    // Terminal area at bottom
+    img.fillRect(sc1X0, sc1Y0 + 20, sc1X1, sc1Y0 + 115, 24, 24, 24);
+    img.drawHLine(sc1X0, sc1X1, sc1Y0 + 115, 60, 60, 65);
+    img.fillRect(sc1X0 + 10, sc1Y0 + 95, sc1X0 + 90, sc1Y0 + 105, 78, 201, 176); // Green terminal tag
+    img.fillRect(sc1X0 + 100, sc1Y0 + 95, sc1X0 + 180, sc1Y0 + 105, 100, 255, 100);
+    img.fillRect(sc1X0 + 10, sc1Y0 + 75, sc1X0 + 150, sc1Y0 + 85, 220, 220, 220);
+    img.fillRect(sc1X0 + 10, sc1Y0 + 55, sc1X0 + 120, sc1Y0 + 65, 100, 200, 255);
+    img.fillRect(sc1X0 + 10, sc1Y0 + 35, sc1X0 + 60, sc1Y0 + 45, 255, 255, 255);
 
-    // Bottom Status Bar (Purple/Blue VS Code status)
-    img.fillRect(sc1X0, sc1Y1 - 18, sc1X1, sc1Y1, 104, 33, 122);
-    img.drawString(sc1X0 + 6, sc1Y1 - 14, "main*  Ln 12, Col 4  UTF-8  C++17  RTX4090", 1, 255, 255, 255);
+    // Status bar at very bottom
+    img.fillRect(sc1X0, sc1Y0, sc1X1, sc1Y0 + 18, 104, 33, 122);
+    img.fillRect(sc1X0 + 8, sc1Y0 + 5, sc1X0 + 45, sc1Y0 + 13, 240, 240, 250);
+    img.fillRect(sc1X0 + 55, sc1Y0 + 5, sc1X0 + 110, sc1Y0 + 13, 200, 200, 210);
+    img.fillRect(sc1X1 - 50, sc1Y0 + 5, sc1X1 - 10, sc1Y0 + 13, 220, 220, 240);
 
     // ------------------------------------------------------------------------
-    // 5. Secondary Monitor: Telemetry & Multi-Window Dashboard [1280..1535, 1024..1535]
+    // 5. Secondary Monitor: Telemetry & Dashboard [1280..1535, 1024..1535]
     // ------------------------------------------------------------------------
     int sc2X0 = 1280, sc2Y0 = 1024, sc2X1 = 1535, sc2Y1 = 1535;
     img.fillRect(sc2X0, sc2Y0, sc2X1, sc2Y1, 18, 22, 32);
-    // Header
-    img.fillRect(sc2X0, sc2Y0, sc2X1, sc2Y0 + 26, 30, 38, 55);
-    img.drawString(sc2X0 + 10, sc2Y0 + 8, "SYSTEM TELEMETRY - NODE AI-01", 1, 100, 210, 255);
+    // Header Bar
+    img.fillRect(sc2X0, sc2Y1 - 26, sc2X1, sc2Y1, 30, 38, 55);
+    img.fillRect(sc2X0 + 12, sc2Y1 - 18, sc2X0 + 120, sc2Y1 - 10, 100, 210, 255);
+    img.fillRect(sc2X1 - 60, sc2Y1 - 18, sc2X1 - 12, sc2Y1 - 10, 80, 220, 120);
 
-    // Top Area: Circular Gauges (GPU & VRAM)
-    int g1X = sc2X0 + 64, g1Y = sc2Y0 + 80;
-    img.fillCircle(g1X, g1Y, 36, 30, 36, 50);
-    img.drawRing(g1X, g1Y, 28, 36, 255, 80, 80); // Red high load ring
-    img.drawString(g1X - 18, g1Y - 8, "GPU 99%", 1, 255, 255, 255);
-    img.drawString(g1X - 16, g1Y + 6, "72 C", 1, 255, 180, 100);
+    // Two Circular Dial Gauges
+    int g1X = sc2X0 + 64, g1Y = sc2Y1 - 70;
+    img.fillCircle(g1X, g1Y, 34, 30, 36, 50);
+    img.drawRing(g1X, g1Y, 26, 34, 255, 80, 80);
+    img.fillRect(g1X - 16, g1Y - 4, g1X + 16, g1Y + 4, 255, 255, 255); // Inner value bar
 
-    int g2X = sc2X0 + 180, g2Y = sc2Y0 + 80;
-    img.fillCircle(g2X, g2Y, 36, 30, 36, 50);
-    img.drawRing(g2X, g2Y, 28, 36, 50, 220, 130); // Green VRAM ring
-    img.drawString(g2X - 22, g2Y - 8, "VRAM 92%", 1, 255, 255, 255);
-    img.drawString(g2X - 22, g2Y + 6, "22/24 GB", 1, 180, 230, 255);
+    int g2X = sc2X0 + 180, g2Y = sc2Y1 - 70;
+    img.fillCircle(g2X, g2Y, 34, 30, 36, 50);
+    img.drawRing(g2X, g2Y, 26, 34, 50, 220, 130);
+    img.fillRect(g2X - 16, g2Y - 4, g2X + 16, g2Y + 4, 255, 255, 255); // Inner value bar
 
-    // Middle Area: Training Loss Curve Plot
-    img.drawRectOutline(sc2X0 + 12, sc2Y0 + 130, sc2X1 - 12, sc2Y0 + 280, 1, 50, 70, 100);
-    img.drawString(sc2X0 + 20, sc2Y0 + 138, "EPOCH LOSS CURVE (STEP 10,000)", 1, 140, 200, 255);
-    // Draw Grid lines
-    for (int gy = sc2Y0 + 160; gy <= sc2Y0 + 260; gy += 25) {
+    // Loss Curve Graph Area
+    img.drawRectOutline(sc2X0 + 12, sc2Y0 + 220, sc2X1 - 12, sc2Y0 + 370, 1, 50, 70, 100);
+    img.fillRect(sc2X0 + 20, sc2Y0 + 355, sc2X0 + 110, sc2Y0 + 363, 140, 200, 255); // Graph title bar
+    for (int gy = sc2Y0 + 245; gy <= sc2Y0 + 345; gy += 25) {
         img.drawHLine(sc2X0 + 15, sc2X1 - 15, gy, 35, 48, 68);
     }
-    // Plot exponential decay curve
     for (int px = sc2X0 + 20; px < sc2X1 - 20; ++px) {
         float normX = (float)(px - (sc2X0 + 20)) / (float)(sc2X1 - sc2X0 - 40);
         float normY = std::exp(-normX * 4.0f) * 0.85f + 0.08f;
-        int py = (sc2Y0 + 265) - (int)(normY * 105.0f);
+        int py = (sc2Y0 + 235) + (int)(normY * 105.0f);
         img.setPixel(px, py, 50, 255, 140);
         img.setPixel(px, py + 1, 50, 255, 140);
-        img.setPixel(px, py - 1, 0, 200, 100);
     }
 
-    // Lower Middle Area: Network & CPU Specs
-    img.drawString(sc2X0 + 16, sc2Y0 + 295, "CPU: AMD RYZEN 9 7950X (32 THREADS)", 1, 200, 210, 230);
-    img.drawString(sc2X0 + 16, sc2Y0 + 312, "NET: 10 Gbps SFP+ | LATENCY: 0.8 ms", 1, 200, 210, 230);
+    // Telemetry System Metrics (Clean multi-colored status bars)
+    img.fillRect(sc2X0 + 12, sc2Y0 + 15, sc2X1 - 12, sc2Y0 + 200, 12, 16, 24);
+    img.drawRectOutline(sc2X0 + 12, sc2Y0 + 15, sc2X1 - 12, sc2Y0 + 200, 1, 40, 60, 90);
+    img.fillRect(sc2X0 + 18, sc2Y0 + 175, sc2X0 + 130, sc2Y0 + 187, 255, 215, 0); // Gold category bar
 
-    // Bottom Area: AI Live Agent Feed
-    img.fillRect(sc2X0 + 12, sc2Y0 + 335, sc2X1 - 12, sc2Y1 - 15, 12, 16, 24);
-    img.drawRectOutline(sc2X0 + 12, sc2Y0 + 335, sc2X1 - 12, sc2Y1 - 15, 1, 40, 60, 90);
-    img.drawString(sc2X0 + 18, sc2Y0 + 345, "LIVE AI AGENT CLUSTER:", 1, 255, 215, 0);
-    img.drawString(sc2X0 + 18, sc2Y0 + 365, "[AI-01] Optimizing 3D vertices...", 1, 80, 220, 120);
-    img.drawString(sc2X0 + 18, sc2Y0 + 385, "[AI-02] Compiling Phong shaders...", 1, 80, 220, 120);
-    img.drawString(sc2X0 + 18, sc2Y0 + 405, "[AI-03] Shadow map PCF pass: 100%", 1, 80, 220, 120);
-    img.drawString(sc2X0 + 18, sc2Y0 + 425, "[BOSS] Supervision active. Keep coding!", 1, 255, 100, 100);
-    img.drawString(sc2X0 + 18, sc2Y0 + 445, "[STATUS] All systems running optimal.", 1, 100, 200, 255);
-    img.drawString(sc2X0 + 18, sc2Y0 + 465, "[CLUSTER] GPU Temp 72 C | Fans 100%", 1, 180, 180, 180);
+    int metY = sc2Y0 + 155;
+    for (int m = 0; m < 5; ++m) {
+        // Status indicator dot
+        img.fillRect(sc2X0 + 18, metY + 1, sc2X0 + 24, metY + 7, (m == 3 ? 255 : 80), (m == 3 ? 80 : 220), (m == 3 ? 80 : 120));
+        // Metric label bar
+        img.fillRect(sc2X0 + 30, metY, sc2X0 + 110, metY + 8, 140, 160, 190);
+        // Metric progress bar
+        img.fillRect(sc2X0 + 125, metY, sc2X0 + 125 + (m * 19 + 45) % 90, metY + 8, (m == 3 ? 240 : 60), (m == 3 ? 100 : 180), (m == 3 ? 80 : 255));
+        metY -= 25;
+    }
 
     // ------------------------------------------------------------------------
     // 6. PC Case Front Mesh with 3 Glowing RGB Fans [1536..1791, 1024..1279]
     // ------------------------------------------------------------------------
     int pcfX0 = 1536, pcfY0 = 1024, pcfX1 = 1791, pcfY1 = 1279;
-    img.fillRect(pcfX0, pcfY0, pcfX1, pcfY1, 22, 22, 24); // Dark mesh chassis
-    // Hexagonal / mesh dot pattern
+    img.fillRect(pcfX0, pcfY0, pcfX1, pcfY1, 22, 22, 24);
     for (int y = pcfY0; y <= pcfY1; y += 8) {
         for (int x = pcfX0; x <= pcfX1; x += 8) {
             img.setPixel(x + ((y / 8) % 2 ? 4 : 0), y, 38, 38, 42);
         }
     }
-    // 3 Large Glowing RGB Halo-Ring Intake Fans
     int fanCentersY[] = { pcfY0 + 45, pcfY0 + 128, pcfY0 + 210 };
     int fanCenterX = (pcfX0 + pcfX1) / 2;
     for (int f = 0; f < 3; ++f) {
         int cy = fanCentersY[f];
-        // Outer RGB Halo
-        img.drawRing(fanCenterX, cy, 32, 38, 0, 230, 255); // Cyan glow
-        img.drawRing(fanCenterX, cy, 28, 32, 255, 0, 180); // Magenta accent
-        // Fan hub & blades
+        img.drawRing(fanCenterX, cy, 32, 38, 0, 230, 255);
+        img.drawRing(fanCenterX, cy, 28, 32, 255, 0, 180);
         img.fillCircle(fanCenterX, cy, 12, 45, 45, 50);
-        img.drawRing(fanCenterX, cy, 12, 14, 255, 255, 255); // Center LED ring
+        img.drawRing(fanCenterX, cy, 12, 14, 255, 255, 255);
     }
-    // Top Power Button & USB ports
-    img.fillCircle(fanCenterX - 40, pcfY0 + 12, 5, 200, 220, 255); // Power button
-    img.fillRect(fanCenterX - 20, pcfY0 + 9, fanCenterX - 10, pcfY0 + 15, 50, 150, 255); // USB 3.0
-    img.fillRect(fanCenterX + 10, pcfY0 + 9, fanCenterX + 20, pcfY0 + 15, 50, 150, 255);
 
     // ------------------------------------------------------------------------
     // 7. PC Case Tempered Glass Side Window [1792..2047, 1024..1279]
     // ------------------------------------------------------------------------
     int pcsX0 = 1792, pcsY0 = 1024, pcsX1 = 2047, pcsY1 = 1279;
-    img.fillRect(pcsX0, pcsY0, pcsX1, pcsY1, 15, 17, 22); // Dark interior
-    img.drawRectOutline(pcsX0, pcsY0, pcsX1, pcsY1, 6, 40, 42, 48); // Case frame
+    img.fillRect(pcsX0, pcsY0, pcsX1, pcsY1, 15, 17, 22);
+    img.drawRectOutline(pcsX0, pcsY0, pcsX1, pcsY1, 6, 40, 42, 48);
 
-    // Motherboard PCB & Heatsinks
     img.fillRect(pcsX0 + 20, pcsY0 + 20, pcsX1 - 20, pcsY1 - 20, 28, 30, 36);
-    // Silver Motherboard VRM Heatsinks
-    img.fillRect(pcsX0 + 35, pcsY0 + 35, pcsX0 + 75, pcsY0 + 95, 140, 145, 155);
-    img.fillRect(pcsX0 + 80, pcsY0 + 35, pcsX0 + 140, pcsY0 + 60, 140, 145, 155);
+    img.fillRect(pcsX0 + 35, pcsY0 + 140, pcsX0 + 75, pcsY0 + 200, 140, 145, 155);
 
-    // CPU Liquid Cooler AIO Block (Glowing circular infinity mirror)
-    int cpuX = pcsX0 + 105, cpuY = pcsY0 + 95;
+    int cpuX = pcsX0 + 105, cpuY = pcsY0 + 160;
     img.fillCircle(cpuX, cpuY, 26, 10, 10, 15);
-    img.drawRing(cpuX, cpuY, 20, 26, 0, 240, 255); // Cyan ring
-    img.drawRing(cpuX, cpuY, 14, 18, 255, 0, 150); // Pink inner ring
+    img.drawRing(cpuX, cpuY, 20, 26, 0, 240, 255);
+    img.drawRing(cpuX, cpuY, 14, 18, 255, 0, 150);
     img.drawString(cpuX - 14, cpuY - 4, "65C", 1, 255, 255, 255);
-    // Braided Liquid Coolant Tubes
-    for (int t = 0; t < 45; ++t) {
-        img.setPixel(cpuX + 22 + t, cpuY - 15 - t / 2, 45, 45, 50);
-        img.setPixel(cpuX + 22 + t, cpuY - 14 - t / 2, 60, 60, 65);
-        img.setPixel(cpuX + 22 + t, cpuY - 5 - t / 2, 45, 45, 50);
-        img.setPixel(cpuX + 22 + t, cpuY - 4 - t / 2, 60, 60, 65);
-    }
 
-    // Dual RGB RAM Sticks
-    int ramX = pcsX0 + 150, ramY = pcsY0 + 65;
-    img.fillRect(ramX, ramY, ramX + 8, ramY + 55, 255, 100, 200); // RAM 1 RGB
-    img.fillRect(ramX + 12, ramY, ramX + 20, ramY + 55, 100, 200, 255); // RAM 2 RGB
+    int ramX = pcsX0 + 150, ramY = pcsY0 + 130;
+    img.fillRect(ramX, ramY, ramX + 8, ramY + 55, 255, 100, 200);
+    img.fillRect(ramX + 12, ramY, ramX + 20, ramY + 55, 100, 200, 255);
 
-    // Massive GeForce RTX 4090 GPU (Chunky with triple fans and glowing logo)
-    int gpuX0 = pcsX0 + 25, gpuY0 = pcsY0 + 145, gpuX1 = pcsX1 - 30, gpuY1 = pcsY0 + 215;
-    img.fillRect(gpuX0, gpuY0, gpuX1, gpuY1, 35, 38, 44); // GPU Shroud
+    int gpuX0 = pcsX0 + 25, gpuY0 = pcsY0 + 40, gpuX1 = pcsX1 - 30, gpuY1 = pcsY0 + 110;
+    img.fillRect(gpuX0, gpuY0, gpuX1, gpuY1, 35, 38, 44);
     img.drawRectOutline(gpuX0, gpuY0, gpuX1, gpuY1, 2, 80, 85, 95);
-    // Glowing GPU Logo
-    img.fillRect(gpuX0 + 15, gpuY0 + 8, gpuX0 + 120, gpuY0 + 22, 10, 10, 12);
-    img.drawString(gpuX0 + 20, gpuY0 + 12, "GEFORCE RTX 4090", 1, 118, 185, 0); // NVIDIA Green!
-    // 3 GPU Cooling Fans
+    img.fillRect(gpuX0 + 15, gpuY1 - 20, gpuX0 + 120, gpuY1 - 6, 10, 10, 12);
+    img.drawString(gpuX0 + 20, gpuY1 - 16, "GEFORCE RTX 4090", 1, 118, 185, 0);
+
     int gpuFanCenters[] = { gpuX0 + 45, gpuX0 + 100, gpuX0 + 155 };
     for (int gx : gpuFanCenters) {
-        img.fillCircle(gx, gpuY0 + 44, 20, 20, 22, 26);
-        img.drawRing(gx, gpuY0 + 44, 16, 20, 120, 130, 140);
-        img.fillCircle(gx, gpuY0 + 44, 6, 70, 75, 85);
+        img.fillCircle(gx, gpuY0 + 35, 20, 20, 22, 26);
+        img.drawRing(gx, gpuY0 + 35, 16, 20, 120, 130, 140);
     }
 
-    // Power Supply Shroud at bottom
-    img.fillRect(pcsX0 + 10, pcsY1 - 35, pcsX1 - 10, pcsY1 - 8, 25, 27, 32);
-    img.drawString(pcsX0 + 30, pcsY1 - 25, "1200W PLATINUM ATX 3.0", 1, 120, 120, 130);
-
     // ------------------------------------------------------------------------
-    // 8. Custom Mechanical Keyboard & Stream Deck [1536..1791, 1280..1535]
+    // 8. Custom Mechanical Keyboard [1536..1791, 1280..1535]
     // ------------------------------------------------------------------------
     int kbX0 = 1536, kbY0 = 1280, kbX1 = 1791, kbY1 = 1535;
-    img.fillRect(kbX0, kbY0, kbX1, kbY1, 35, 37, 42); // Dark aluminum case
-    // Draw individual keycaps (75% compact layout)
-    int rowY = kbY0 + 15;
+    img.fillRect(kbX0, kbY0, kbX1, kbY1, 35, 37, 42);
+    int rowY = kbY1 - 25;
     for (int r = 0; r < 5; ++r) {
         int curKx = kbX0 + 15;
         for (int k = 0; k < 14; ++k) {
-            uint8_t kr = 220, kg = 220, kb = 225; // White alphas
+            uint8_t kr = 220, kg = 220, kb = 225;
             if (r == 0 || k == 0 || k >= 12) {
-                kr = 70; kg = 75; kb = 85; // Dark modifiers
+                kr = 70; kg = 75; kb = 85;
             }
-            if (r == 0 && k == 0) { kr = 255; kg = 90; kb = 30; } // Orange ESC key!
-            if (r == 2 && k == 12) { kr = 0; kg = 180; kb = 230; } // Cyan Enter key!
-            img.fillRect(curKx, rowY, curKx + 13, rowY + 12, kr, kg, kb);
-            img.drawRectOutline(curKx, rowY, curKx + 13, rowY + 12, 1, 25, 25, 30);
+            if (r == 0 && k == 0) { kr = 255; kg = 90; kb = 30; } // Orange ESC
+            if (r == 2 && k == 12) { kr = 0; kg = 180; kb = 230; } // Cyan Enter
+            img.fillRect(curKx, rowY - 12, curKx + 13, rowY, kr, kg, kb);
+            img.drawRectOutline(curKx, rowY - 12, curKx + 13, rowY, 1, 25, 25, 30);
             curKx += 16;
         }
-        rowY += 15;
+        rowY -= 15;
     }
-    // Spacebar
-    img.fillRect(kbX0 + 80, kbY0 + 92, kbX0 + 165, kbY0 + 105, 220, 220, 225);
-    img.drawRectOutline(kbX0 + 80, kbY0 + 92, kbX0 + 165, kbY0 + 105, 1, 25, 25, 30);
-
-    // Stream Deck (15-key Macro Pad) [kbX0 + 15..kbX0 + 130, kbY0 + 135..kbY1 - 15]
-    img.fillRect(kbX0 + 15, kbY0 + 135, kbX0 + 130, kbY1 - 15, 20, 20, 25);
-    img.drawRectOutline(kbX0 + 15, kbY0 + 135, kbX0 + 130, kbY1 - 15, 2, 80, 85, 95);
-    for (int sy = 0; sy < 3; ++sy) {
-        for (int sx = 0; sx < 5; ++sx) {
-            int kx = kbX0 + 22 + sx * 21;
-            int ky = kbY0 + 144 + sy * 30;
-            uint8_t sr = (sx * 55) % 255;
-            uint8_t sg = (sy * 85 + 80) % 255;
-            uint8_t sb = 220;
-            img.fillRect(kx, ky, kx + 16, ky + 22, sr, sg, sb);
-            img.drawRectOutline(kx, ky, kx + 16, ky + 22, 1, 10, 10, 15);
-        }
-    }
-
-    // Gaming Mouse Texture [kbX0 + 150..kbX1 - 15, kbY0 + 135..kbY1 - 15]
-    img.fillRect(kbX0 + 155, kbY0 + 135, kbX1 - 20, kbY1 - 15, 28, 30, 35);
-    // Mouse buttons divider
-    img.drawVLine(kbX0 + 195, kbY0 + 140, kbY0 + 195, 15, 15, 20);
-    // RGB Scroll Wheel
-    img.fillRect(kbX0 + 191, kbY0 + 155, kbX0 + 199, kbY0 + 180, 0, 240, 255);
-    img.drawString(kbX0 + 175, kbY1 - 40, "DPI: 3200", 1, 180, 180, 200);
+    img.fillRect(kbX0 + 80, kbY1 - 100, kbX0 + 165, kbY1 - 87, 220, 220, 225);
 
     // ------------------------------------------------------------------------
-    // 9. Studio Monitor Speakers & Headphone Earcups [1792..2047, 1280..1535]
+    // 9. Studio Monitor Speakers [1792..2047, 1280..1535]
     // ------------------------------------------------------------------------
     int spkX0 = 1792, spkY0 = 1280, spkX1 = 2047, spkY1 = 1535;
-    img.fillRect(spkX0, spkY0, spkX1, spkY1, 32, 34, 38); // Matte black speaker cab
+    img.fillRect(spkX0, spkY0, spkX1, spkY1, 32, 34, 38);
     img.drawRectOutline(spkX0, spkY0, spkX1, spkY1, 4, 18, 18, 22);
-    // Tweeter (Top small cone)
     int spkMidX = (spkX0 + spkX1) / 2;
-    img.fillCircle(spkMidX, spkY0 + 60, 24, 20, 22, 26);
-    img.fillCircle(spkMidX, spkY0 + 60, 12, 180, 185, 195); // Silver dome
-    // Woofer (Bottom large cone with yellow/silver Kevlar cone)
-    img.fillCircle(spkMidX, spkY0 + 160, 60, 225, 190, 50); // Kevlar yellow
-    img.drawRing(spkMidX, spkY0 + 160, 48, 60, 25, 25, 30); // Rubber surround
-    img.fillCircle(spkMidX, spkY0 + 160, 20, 20, 20, 25); // Dust cap
-    // Bass reflex port
-    img.fillCircle(spkMidX, spkY0 + 232, 12, 10, 10, 12);
+    img.fillCircle(spkMidX, spkY1 - 60, 24, 20, 22, 26);
+    img.fillCircle(spkMidX, spkY1 - 60, 12, 180, 185, 195);
+    img.fillCircle(spkMidX, spkY0 + 80, 56, 225, 190, 50);
+    img.drawRing(spkMidX, spkY0 + 80, 44, 56, 25, 25, 30);
+    img.fillCircle(spkMidX, spkY0 + 80, 18, 20, 20, 25);
 
     // ------------------------------------------------------------------------
-    // 10. Office Door, Clock, Poster, Materials [1024..2047, 1536..2047]
+    // 10. Clean Office Door (NO PLAQUE!) [1024..1279, 1536..2047]
     // ------------------------------------------------------------------------
-    // Door panel [1024..1279, 1536..2047]
     img.fillRect(1024, 1536, 1279, 2047, 140, 100, 70);
     img.drawRectOutline(1024, 1536, 1279, 2047, 8, 90, 60, 40);
     img.drawRectOutline(1048, 1560, 1255, 1680, 6, 100, 70, 45);
     img.drawRectOutline(1048, 1710, 1255, 1840, 6, 100, 70, 45);
     img.drawRectOutline(1048, 1870, 1255, 2010, 6, 100, 70, 45);
-    // Door Plaque
-    img.fillRect(1060, 1750, 1240, 1810, 30, 30, 35);
-    img.drawRectOutline(1060, 1750, 1240, 1810, 2, 200, 180, 80);
-    img.drawString(1080, 1765, "AI LAB 01", 2, 255, 255, 255);
-    img.drawString(1080, 1788, "RESTRICTED", 2, 255, 80, 80);
+    // Door plaque removed as requested!
 
-    // Clock Face [1280..1407, 1536..1663] (128x128)
+    // Clock Face [1280..1407, 1536..1663]
     int clkX = 1344, clkY = 1600;
-    img.fillCircle(clkX, clkY, 60, 245, 245, 245);
-    img.drawRing(clkX, clkY, 56, 62, 40, 40, 45);
-    img.fillRect(clkX - 2, clkY - 54, clkX + 2, clkY - 40, 20, 20, 20); // 12
-    img.fillRect(clkX - 2, clkY + 40, clkX + 2, clkY + 54, 20, 20, 20); // 6
-    img.fillRect(clkX - 54, clkY - 2, clkX - 40, clkY + 2, 20, 20, 20); // 9
-    img.fillRect(clkX + 40, clkY - 2, clkX + 54, clkY + 2, 20, 20, 20); // 3
-    img.drawVLine(clkX, clkY - 35, clkY, 10, 10, 10); // Hour
-    img.drawHLine(clkX - 25, clkX, clkY - 30, 220, 20, 20); // Minute (11:55)
+    // Clean background
+    img.fillRect(1280, 1536, 1407, 1663, 235, 238, 242);
+    // Crisp white dial
+    img.fillCircle(clkX, clkY, 60, 255, 255, 255);
+
+    // 12 Hour Tick Marks around the dial
+    for (int h = 0; h < 12; ++h) {
+        float ang = (float)h * 3.14159265f / 6.0f;
+        float ca = std::cos(ang), sa = std::sin(ang);
+        int rOut = 55;
+        int rIn = (h % 3 == 0) ? 44 : 49; // 12, 3, 6, 9 are bold major ticks
+        int thick = (h % 3 == 0) ? 3 : 2;
+
+        int xA = clkX + (int)(rIn * ca);
+        int yA = clkY + (int)(rIn * sa);
+        int xB = clkX + (int)(rOut * ca);
+        int yB = clkY + (int)(rOut * sa);
+
+        int minTx = std::min(xA, xB), maxTx = std::max(xA, xB);
+        int minTy = std::min(yA, yB), maxTy = std::max(yA, yB);
+        if (h == 0 || h == 6) { // Horizontal ticks (3 and 9 o'clock)
+            img.fillRect(minTx, clkY - thick/2, maxTx, clkY + thick/2, 25, 25, 30);
+        } else if (h == 3 || h == 9) { // Vertical ticks (12 and 6 o'clock)
+            img.fillRect(clkX - thick/2, minTy, clkX + thick/2, maxTy, 25, 25, 30);
+        } else { // Diagonal ticks
+            img.fillRect(minTx - 1, minTy - 1, maxTx + 1, maxTy + 1, 35, 35, 40);
+        }
+    }
+
+    // Hour Hand (pointing towards 10 o'clock, pivoting from exact center)
+    for (int t = 0; t <= 24; ++t) {
+        float f = (float)t / 24.0f;
+        int hx = clkX + (int)(-20.0f * f);
+        int hy = clkY + (int)(15.0f * f);
+        img.fillCircle(hx, hy, 2, 20, 20, 25);
+    }
+
+    // Minute Hand (pointing towards 2 o'clock, pivoting from exact center)
+    for (int t = 0; t <= 40; ++t) {
+        float f = (float)t / 40.0f;
+        int mx = clkX + (int)(20.0f * f);
+        int my = clkY + (int)(34.0f * f);
+        img.fillCircle(mx, my, 2, 20, 20, 25);
+    }
+
+    // Second Hand (vibrant red line through center down to 6 o'clock)
+    for (int sy = clkY - 48; sy <= clkY + 10; ++sy) {
+        img.setPixel(clkX, sy, 220, 30, 30);
+        img.setPixel(clkX + 1, sy, 220, 30, 30);
+    }
+
+    // Center Cap
+    img.fillCircle(clkX, clkY, 4, 30, 30, 35);
+    img.fillCircle(clkX, clkY, 2, 220, 30, 30);
 
     // Vision Poster [1280..1535, 1664..2047]
+    // Clean stylized graphic rectangle bars ("ขีดสี่เหลี่ยม") as requested!
     img.fillRect(1280, 1664, 1535, 2047, 20, 25, 35);
     img.drawRectOutline(1280, 1664, 1535, 2047, 12, 210, 180, 90);
-    img.drawString(1300, 1720, "INNOVATION", 3, 255, 215, 0);
-    img.drawString(1310, 1780, "KEEP CALM", 3, 240, 240, 250);
-    img.drawString(1340, 1830, "AND", 3, 240, 240, 250);
-    img.drawString(1300, 1880, "SHIP THE AI", 3, 100, 220, 255);
-    img.drawString(1310, 1980, "DEV CORP 2026", 2, 150, 160, 180);
+
+    // Title Bars (Gold)
+    img.fillRect(1310, 1968, 1505, 1988, 255, 215, 0);
+    img.fillRect(1335, 1942, 1480, 1956, 240, 195, 10);
+
+    // Content Bars (White / Silver)
+    img.fillRect(1325, 1905, 1490, 1918, 235, 238, 245);
+    img.fillRect(1350, 1878, 1465, 1891, 210, 215, 225);
+    img.fillRect(1335, 1852, 1480, 1865, 235, 238, 245);
+
+    // Highlight Bars (Cyan)
+    img.fillRect(1315, 1805, 1500, 1823, 70, 200, 255);
+    img.fillRect(1340, 1780, 1475, 1794, 50, 170, 230);
+
+    // Footer Bar (Slate)
+    img.fillRect(1355, 1715, 1460, 1726, 130, 140, 160);
 
     // Bookshelf Spines & Binders [1536..1791, 1536..1791]
     img.fillRect(1536, 1536, 1791, 1791, 45, 30, 20);
@@ -828,25 +917,12 @@ int main() {
         img.drawHLine(1792, 2047, y, grain, (uint8_t)(grain * 0.62f), (uint8_t)(grain * 0.40f));
     }
 
-    // Carpet Rug [1536..1791, 1792..1919]
-    img.fillRect(1536, 1792, 1791, 1919, 40, 50, 68);
-    for (int y = 1792; y < 1920; y += 16) {
-        for (int x = 1536; x < 1792; x += 16) {
-            if (((x / 16) + (y / 16)) % 2 == 0) {
-                img.fillRect(x, y, x + 15, y + 15, 52, 65, 86);
-            }
-        }
-    }
+    // Desk Mat [1536..1791, 1792..1919]
+    img.fillRect(1536, 1792, 1791, 1919, 28, 30, 36);
+    img.drawRectOutline(1536, 1792, 1791, 1919, 4, 0, 210, 255);
 
-    // Caution Strip [1792..2047, 1792..1855]
-    for (int x = 1792; x < 2048; ++x) {
-        bool yellow = ((x + 20) / 24) % 2 == 0;
-        uint8_t r = yellow ? 245 : 25;
-        uint8_t g = yellow ? 210 : 25;
-        uint8_t b = yellow ? 20 : 25;
-        img.drawVLine(x, 1792, 1855, r, g, b);
-    }
-    img.drawString(1820, 1815, "CAUTION: AI WORKER ZONE", 2, 10, 10, 10);
+    // Aluminum Trim [1792..2047, 1792..1855]
+    img.fillRect(1792, 1792, 2047, 1855, 210, 215, 222);
 
     // Plant Foliage [1792..1919, 1856..1983]
     img.fillRect(1792, 1856, 1919, 1983, 35, 115, 45);
@@ -872,7 +948,6 @@ int main() {
     // ========================================================================
     OBJBuilder obj;
 
-    // UV Coordinates (Normalized 0.0 to 1.0)
     UVBox uvFloor       = { 0.0f,     0.0f,     0.5f,     0.5f };
     UVBox uvWhiteboard  = { 0.5f,     0.0f,     1.0f,     0.5f };
     UVBox uvWindow      = { 0.0f,     0.5f,     0.5f,     1.0f };
@@ -887,344 +962,405 @@ int main() {
     UVBox uvPoster      = { 0.625f,   0.8125f,  0.75f,    1.0f };
     UVBox uvBooks       = { 0.75f,    0.75f,    0.875f,   0.875f };
     UVBox uvDeskWood    = { 0.875f,   0.75f,    1.0f,     0.875f };
-    UVBox uvRug         = { 0.75f,    0.875f,   0.875f,   0.9375f };
-    UVBox uvCaution     = { 0.875f,   0.875f,   1.0f,     0.90625f };
+    UVBox uvDeskMat     = { 0.75f,    0.875f,   0.875f,   0.9375f };
+    UVBox uvAlumTrim    = { 0.875f,   0.875f,   1.0f,     0.90625f };
     UVBox uvFoliage     = { 0.875f,   0.90625f, 0.9375f,  0.96875f };
     UVBox uvDrywall     = { 0.9375f,  0.90625f, 1.0f,     0.96875f };
     UVBox uvCeiling     = { 0.75f,    0.9375f,  0.875f,   1.0f };
     UVBox uvSteel       = { 0.875f,   0.96875f, 1.0f,     1.0f };
 
-    // 1. Room Shell (X: -2.5..4.5, Y: -1.5..1.7, Z: -5.0..2.0)
-    // Floor
-    obj.addQuad(Vec3(-2.5f, -1.5f,  2.0f), Vec3( 4.5f, -1.5f,  2.0f),
-                Vec3( 4.5f, -1.5f, -5.0f), Vec3(-2.5f, -1.5f, -5.0f),
-                Vec2(0.0f, 0.0f), Vec2(1.0f, 0.0f), Vec2(1.0f, 1.0f), Vec2(0.0f, 1.0f),
-                Vec3(0, 1.0f, 0));
-    // Ceiling
-    obj.addQuad(Vec3(-2.5f, 1.7f, -5.0f), Vec3( 4.5f, 1.7f, -5.0f),
-                Vec3( 4.5f, 1.7f,  2.0f), Vec3(-2.5f, 1.7f,  2.0f),
+    // ------------------------------------------------------------------------
+    // 1. SEAMLESS BROWN WOOD FLOOR (Spanning Entire Room)
+    // ------------------------------------------------------------------------
+    for (int iz = 0; iz < 7; ++iz) {
+        float z0 = -5.0f + iz * 1.0f;
+        float z1 = z0 + 1.0f;
+        for (int ix = 0; ix < 7; ++ix) {
+            float x0 = -2.5f + ix * 1.0f;
+            float x1 = x0 + 1.0f;
+
+            obj.addQuad(Vec3(x0, -1.50f, z1), Vec3(x1, -1.50f, z1),
+                        Vec3(x1, -1.50f, z0), Vec3(x0, -1.50f, z0),
+                        Vec2(uvFloor.u0, uvFloor.v0), Vec2(uvFloor.u1, uvFloor.v0),
+                        Vec2(uvFloor.u1, uvFloor.v1), Vec2(uvFloor.u0, uvFloor.v1),
+                        Vec3(0, 1.0f, 0));
+        }
+    }
+
+    // Ceiling (Y = 1.70f)
+    obj.addQuad(Vec3(-2.5f, 1.70f, -5.0f), Vec3( 4.5f, 1.70f, -5.0f),
+                Vec3( 4.5f, 1.70f,  2.0f), Vec3(-2.5f, 1.70f,  2.0f),
                 Vec2(uvCeiling.u0, uvCeiling.v0), Vec2(uvCeiling.u1, uvCeiling.v0),
                 Vec2(uvCeiling.u1, uvCeiling.v1), Vec2(uvCeiling.u0, uvCeiling.v1),
                 Vec3(0, -1.0f, 0));
-    // Back Wall (Z = -5.0)
-    obj.addQuad(Vec3(-2.5f, -1.5f, -5.0f), Vec3( 4.5f, -1.5f, -5.0f),
-                Vec3( 4.5f,  1.7f, -5.0f), Vec3(-2.5f,  1.7f, -5.0f),
+
+    // Back Wall (Z = -5.0f)
+    obj.addQuad(Vec3(-2.5f, -1.50f, -5.0f), Vec3( 4.5f, -1.50f, -5.0f),
+                Vec3( 4.5f,  1.70f, -5.0f), Vec3(-2.5f,  1.70f, -5.0f),
                 Vec2(uvDrywall.u0, uvDrywall.v0), Vec2(uvDrywall.u1, uvDrywall.v0),
                 Vec2(uvDrywall.u1, uvDrywall.v1), Vec2(uvDrywall.u0, uvDrywall.v1),
                 Vec3(0, 0, 1.0f));
-    // Left Wall (X = -2.5)
-    obj.addQuad(Vec3(-2.5f, -1.5f,  2.0f), Vec3(-2.5f, -1.5f, -5.0f),
-                Vec3(-2.5f,  1.7f, -5.0f), Vec3(-2.5f,  1.7f,  2.0f),
+
+    // Left Wall (X = -2.5f)
+    obj.addQuad(Vec3(-2.5f, -1.50f,  2.0f), Vec3(-2.5f, -1.50f, -5.0f),
+                Vec3(-2.5f,  1.70f, -5.0f), Vec3(-2.5f,  1.70f,  2.0f),
                 Vec2(uvDrywall.u0, uvDrywall.v0), Vec2(uvDrywall.u1, uvDrywall.v0),
                 Vec2(uvDrywall.u1, uvDrywall.v1), Vec2(uvDrywall.u0, uvDrywall.v1),
                 Vec3(1.0f, 0, 0));
-    // Right Wall (X = 4.5)
-    obj.addQuad(Vec3( 4.5f, -1.5f, -5.0f), Vec3( 4.5f, -1.5f,  2.0f),
-                Vec3( 4.5f,  1.7f,  2.0f), Vec3( 4.5f,  1.7f, -5.0f),
+
+    // Right Wall (X = 4.5f)
+    obj.addQuad(Vec3( 4.5f, -1.50f, -5.0f), Vec3( 4.5f, -1.50f,  2.0f),
+                Vec3( 4.5f,  1.70f,  2.0f), Vec3( 4.5f,  1.70f, -5.0f),
                 Vec2(uvDrywall.u0, uvDrywall.v0), Vec2(uvDrywall.u1, uvDrywall.v0),
                 Vec2(uvDrywall.u1, uvDrywall.v1), Vec2(uvDrywall.u0, uvDrywall.v1),
                 Vec3(-1.0f, 0, 0));
 
     // Baseboard moldings
-    obj.addBox(-2.48f, -1.5f, -4.98f,  4.48f, -1.42f, -4.95f, uvDeskWood);
-    obj.addBox(-2.48f, -1.5f, -4.98f, -2.45f, -1.42f,  1.98f, uvDeskWood);
-    obj.addBox( 4.45f, -1.5f, -4.98f,  4.48f, -1.42f,  1.98f, uvDeskWood);
+    obj.addBox(-2.48f, -1.50f, -4.98f,  4.48f, -1.42f, -4.95f, uvDeskWood);
+    obj.addBox(-2.48f, -1.50f, -4.98f, -2.45f, -1.42f,  1.98f, uvDeskWood);
+    obj.addBox( 4.45f, -1.50f, -4.98f,  4.48f, -1.42f,  1.98f, uvDeskWood);
 
-    // 2. Large Panoramic Window (Left Wall)
-    obj.addBox(-2.49f, -0.62f, -4.2f, -2.44f, -0.58f, -0.6f, uvSteel);
-    obj.addBox(-2.49f, -0.60f, -4.2f, -2.46f,  1.30f, -4.15f, uvSteel);
-    obj.addBox(-2.49f, -0.60f, -0.65f, -2.46f, 1.30f, -0.60f, uvSteel);
-    obj.addBox(-2.49f,  1.25f, -4.2f, -2.46f,  1.30f, -0.6f, uvSteel);
-    obj.addBox(-2.49f,  0.35f, -4.2f, -2.47f,  0.40f, -0.6f, uvSteel);
-    obj.addBox(-2.49f, -0.60f, -2.42f, -2.47f, 1.30f, -2.38f, uvSteel);
+    // ------------------------------------------------------------------------
+    // 2. Panoramic Window (Left Wall)
+    // ------------------------------------------------------------------------
+    obj.addBox(-2.47f,  1.25f, -4.20f, -2.43f,  1.30f, -0.60f, uvSteel);
+    obj.addBox(-2.47f, -0.62f, -4.25f, -2.40f, -0.58f, -0.55f, uvSteel);
+    obj.addBox(-2.47f, -0.58f, -4.20f, -2.43f,  1.25f, -4.15f, uvSteel);
+    obj.addBox(-2.47f, -0.58f, -0.65f, -2.43f,  1.25f, -0.60f, uvSteel);
+    obj.addBox(-2.47f, -0.58f, -2.42f, -2.43f,  1.25f, -2.38f, uvSteel);
+    obj.addBox(-2.47f,  0.35f, -4.15f, -2.43f,  0.40f, -0.65f, uvSteel);
     obj.addQuad(Vec3(-2.48f, -0.58f, -0.65f), Vec3(-2.48f, -0.58f, -4.15f),
                 Vec3(-2.48f,  1.25f, -4.15f), Vec3(-2.48f,  1.25f, -0.65f),
                 Vec2(uvWindow.u0, uvWindow.v0), Vec2(uvWindow.u1, uvWindow.v0),
                 Vec2(uvWindow.u1, uvWindow.v1), Vec2(uvWindow.u0, uvWindow.v1),
                 Vec3(1.0f, 0, 0));
 
-    // 3. Office Door (Right Wall)
-    obj.addBox(4.46f, -1.5f, -0.65f, 4.49f, 1.15f, 0.65f, uvDeskWood);
-    obj.addQuad(Vec3(4.47f, -1.5f, -0.6f), Vec3(4.47f, -1.5f,  0.6f),
-                Vec3(4.47f,  1.1f,  0.6f), Vec3(4.47f,  1.1f, -0.6f),
+    // ------------------------------------------------------------------------
+    // 3. Office Door (Right Wall) - Clean Wooden Door (NO PLAQUE!)
+    // ------------------------------------------------------------------------
+    obj.addBox(4.44f, -1.50f, -0.65f, 4.47f,  1.15f, -0.60f, uvDeskWood);
+    obj.addBox(4.44f, -1.50f,  0.60f, 4.47f,  1.15f,  0.65f, uvDeskWood);
+    obj.addBox(4.44f,  1.10f, -0.65f, 4.47f,  1.15f,  0.65f, uvDeskWood);
+    obj.addQuad(Vec3(4.46f, -1.50f, -0.60f), Vec3(4.46f, -1.50f,  0.60f),
+                Vec3(4.46f,  1.10f,  0.60f), Vec3(4.46f,  1.10f, -0.60f),
                 Vec2(uvDoor.u0, uvDoor.v0), Vec2(uvDoor.u1, uvDoor.v0),
                 Vec2(uvDoor.u1, uvDoor.v1), Vec2(uvDoor.u0, uvDoor.v1),
                 Vec3(-1.0f, 0, 0));
-    obj.addBox(4.42f, -0.3f, 0.42f, 4.47f, -0.26f, 0.54f, uvSteel);
+    obj.addBox(4.42f, -0.30f, 0.42f, 4.46f, -0.26f, 0.54f, uvSteel);
 
-    // 4. Agile Scrum Whiteboard (Back Wall Center)
-    obj.addBox(-0.52f, -0.22f, -4.98f, 2.22f, 1.17f, -4.95f, uvSteel);
-    obj.addBox(-0.55f, -0.25f, -4.94f, 2.25f, -0.22f, -4.88f, uvSteel);
-    obj.addQuad(Vec3(-0.5f, -0.2f, -4.95f), Vec3( 2.2f, -0.2f, -4.95f),
-                Vec3( 2.2f,  1.15f, -4.95f), Vec3(-0.5f,  1.15f, -4.95f),
+    // ------------------------------------------------------------------------
+    // 4. Agile Scrum Whiteboard (Back Wall)
+    // ------------------------------------------------------------------------
+    float wbX0 = -0.50f, wbX1 = 2.20f;
+    float wbY0 = -0.20f, wbY1 = 1.15f;
+    float wbZ  = -4.92f;
+    float frW  = 0.04f;
+
+    obj.addBox(wbX0 - frW, wbY1,       -4.96f, wbX1 + frW, wbY1 + frW, -4.90f, uvAlumTrim);
+    obj.addBox(wbX0 - frW, wbY0 - frW, -4.96f, wbX1 + frW, wbY0,       -4.90f, uvAlumTrim);
+    obj.addBox(wbX0 - frW, wbY0,       -4.96f, wbX0,       wbY1,       -4.90f, uvAlumTrim);
+    obj.addBox(wbX1,       wbY0,       -4.96f, wbX1 + frW, wbY1,       -4.90f, uvAlumTrim);
+    obj.addBox(wbX0 - frW, wbY0 - 0.07f, -4.96f, wbX1 + frW, wbY0 - frW, -4.84f, uvSteel);
+
+    obj.addQuad(Vec3(wbX0, wbY0, wbZ), Vec3(wbX1, wbY0, wbZ),
+                Vec3(wbX1, wbY1, wbZ), Vec3(wbX0, wbY1, wbZ),
                 Vec2(uvWhiteboard.u0, uvWhiteboard.v0), Vec2(uvWhiteboard.u1, uvWhiteboard.v0),
                 Vec2(uvWhiteboard.u1, uvWhiteboard.v1), Vec2(uvWhiteboard.u0, uvWhiteboard.v1),
                 Vec3(0, 0, 1.0f));
 
+    // ------------------------------------------------------------------------
     // 5. Inspirational Vision Poster
-    obj.addBox(2.68f, 0.28f, -4.98f, 3.82f, 1.22f, -4.96f, uvSteel);
-    obj.addQuad(Vec3(2.7f, 0.3f, -4.96f), Vec3(3.8f, 0.3f, -4.96f),
-                Vec3(3.8f, 1.2f, -4.96f), Vec3(2.7f, 1.2f, -4.96f),
+    // ------------------------------------------------------------------------
+    float pstX0 = 2.70f, pstX1 = 3.80f;
+    float pstY0 = 0.28f, pstY1 = 1.22f;
+    float pstZ  = -4.92f;
+
+    obj.addBox(pstX0 - frW, pstY1,        -4.96f, pstX1 + frW, pstY1 + frW, -4.90f, uvSteel);
+    obj.addBox(pstX0 - frW, pstY0 - frW,  -4.96f, pstX1 + frW, pstY0,       -4.90f, uvSteel);
+    obj.addBox(pstX0 - frW, pstY0,        -4.96f, pstX0,       pstY1,       -4.90f, uvSteel);
+    obj.addBox(pstX1,       pstY0,        -4.96f, pstX1 + frW, pstY1,       -4.90f, uvSteel);
+
+    obj.addQuad(Vec3(pstX0, pstY0, pstZ), Vec3(pstX1, pstY0, pstZ),
+                Vec3(pstX1, pstY1, pstZ), Vec3(pstX0, pstY1, pstZ),
                 Vec2(uvPoster.u0, uvPoster.v0), Vec2(uvPoster.u1, uvPoster.v0),
                 Vec2(uvPoster.u1, uvPoster.v1), Vec2(uvPoster.u0, uvPoster.v1),
                 Vec3(0, 0, 1.0f));
 
-    // 6. Wall Clock
-    obj.addBox(0.68f, 1.28f, -4.98f, 1.12f, 1.52f, -4.96f, uvSteel);
-    obj.addQuad(Vec3(0.7f, 1.3f, -4.96f), Vec3(1.1f, 1.3f, -4.96f),
-                Vec3(1.1f, 1.5f, -4.96f), Vec3(0.7f, 1.5f, -4.96f),
-                Vec2(uvClock.u0, uvClock.v0), Vec2(uvClock.u1, uvClock.v0),
-                Vec2(uvClock.u1, uvClock.v1), Vec2(uvClock.u0, uvClock.v1),
-                Vec3(0, 0, 1.0f));
+    // ------------------------------------------------------------------------
+    // 6. Wall Clock (True Circular Wall Clock with Metallic Bezel)
+    // Elevated above the whiteboard (Y = 1.45f) so it never clips or overlaps!
+    // ------------------------------------------------------------------------
+    float clkCenterX = 0.85f;
+    float clkCenterY = 1.45f; // Raised to 1.45f (midpoint between whiteboard at 1.19f and ceiling at 1.70f)
+    float clkZWall   = -4.96f;
+    float clkZFront  = -4.90f;
+    float clkOuterR  = 0.16f;
+    float clkFaceR   = 0.144f;
+    int   clkSegs    = 32;
 
-    // 7. Executive Workstation Desk (Right Side)
+    float uMid = (uvClock.u0 + uvClock.u1) * 0.5f;
+    float vMid = (uvClock.v0 + uvClock.v1) * 0.5f;
+    float uRad = (uvClock.u1 - uvClock.u0) * 0.46875f; // exact 60px / 128px radius
+    float vRad = (uvClock.v1 - uvClock.v0) * 0.46875f;
+
+    // Center vertex of the circular clock face
+    int ivFaceCenter = obj.addVertex(Vec3(clkCenterX, clkCenterY, clkZFront + 0.002f));
+    int itFaceCenter = obj.addUV(Vec2(uMid, vMid));
+    int inFace       = obj.addNormal(Vec3(0, 0, 1.0f));
+
+    for (int i = 0; i < clkSegs; ++i) {
+        float a0 = (float)i / clkSegs * 2.0f * 3.14159265f;
+        float a1 = (float)(i + 1) / clkSegs * 2.0f * 3.14159265f;
+
+        float c0 = std::cos(a0), s0 = std::sin(a0);
+        float c1 = std::cos(a1), s1 = std::sin(a1);
+
+        // Outer rim vertices (cylindrical casing extruded along Z from the wall)
+        Vec3 r0_back(clkCenterX + clkOuterR * c0, clkCenterY + clkOuterR * s0, clkZWall);
+        Vec3 r1_back(clkCenterX + clkOuterR * c1, clkCenterY + clkOuterR * s1, clkZWall);
+        Vec3 r1_front(clkCenterX + clkOuterR * c1, clkCenterY + clkOuterR * s1, clkZFront);
+        Vec3 r0_front(clkCenterX + clkOuterR * c0, clkCenterY + clkOuterR * s0, clkZFront);
+
+        Vec3 nMid((c0 + c1) * 0.5f, (s0 + s1) * 0.5f, 0.0f);
+        obj.addQuad(r0_back, r1_back, r1_front, r0_front,
+                    Vec2(uvSteel.u0, uvSteel.v0), Vec2(uvSteel.u1, uvSteel.v0),
+                    Vec2(uvSteel.u1, uvSteel.v1), Vec2(uvSteel.u0, uvSteel.v1),
+                    nMid);
+
+        // Front beveled rim ring (from outer radius to face radius)
+        Vec3 f0_rim(clkCenterX + clkFaceR * c0, clkCenterY + clkFaceR * s0, clkZFront + 0.001f);
+        Vec3 f1_rim(clkCenterX + clkFaceR * c1, clkCenterY + clkFaceR * s1, clkZFront + 0.001f);
+        obj.addQuad(f0_rim, f1_rim, r1_front, r0_front,
+                    Vec2(uvSteel.u0, uvSteel.v0), Vec2(uvSteel.u1, uvSteel.v0),
+                    Vec2(uvSteel.u1, uvSteel.v1), Vec2(uvSteel.u0, uvSteel.v1),
+                    Vec3(0, 0, 1.0f));
+
+        // Circular Clock Face (True circle triangle fan)
+        int ivF0 = obj.addVertex(f0_rim);
+        int ivF1 = obj.addVertex(f1_rim);
+        int itF0 = obj.addUV(Vec2(uMid + uRad * c0, vMid + vRad * s0));
+        int itF1 = obj.addUV(Vec2(uMid + uRad * c1, vMid + vRad * s1));
+
+        obj.faces.push_back({ {ivFaceCenter, itFaceCenter, inFace},
+                              {ivF0, itF0, inFace},
+                              {ivF1, itF1, inFace} });
+    }
+
+    // ------------------------------------------------------------------------
+    // 7. Executive Workstation Desk (Right Side) - CLEAN (NO COMPUTER HERE!)
+    // As requested: "คอมตรงนี้เอาออก"
+    // ------------------------------------------------------------------------
     // Tabletop
     obj.addBox(2.6f, -0.78f, -4.3f, 4.25f, -0.72f, -3.4f, uvDeskWood);
     // Metal Legs
-    obj.addBox(2.64f, -1.5f, -4.26f, 2.70f, -0.78f, -4.20f, uvSteel);
-    obj.addBox(2.64f, -1.5f, -3.50f, 2.70f, -0.78f, -3.44f, uvSteel);
+    obj.addBox(2.64f, -1.50f, -4.26f, 2.70f, -0.78f, -4.20f, uvSteel);
+    obj.addBox(2.64f, -1.50f, -3.50f, 2.70f, -0.78f, -3.44f, uvSteel);
     // 3-Drawer Unit on Right
-    obj.addBox(3.6f, -1.5f, -4.25f, 4.20f, -0.78f, -3.45f, uvDeskWood);
+    obj.addBox(3.60f, -1.50f, -4.25f, 4.20f, -0.78f, -3.45f, uvDeskWood);
     obj.addBox(3.56f, -0.95f, -3.88f, 3.60f, -0.92f, -3.78f, uvSteel);
     obj.addBox(3.56f, -1.15f, -3.88f, 3.60f, -1.12f, -3.78f, uvSteel);
     obj.addBox(3.56f, -1.35f, -3.88f, 3.60f, -1.32f, -3.78f, uvSteel);
 
-    // ========================================================================
-    // 8. UPGRADED HIGH-END BATTLESTATION COMPUTER SETUP
-    // ========================================================================
+    // Office Desk Accessories for Manager (Lamp, Mug, Pen holder, Document folders)
+    // Classic Desk Lamp on Right
+    obj.addCylinder(4.05f, -4.05f, -0.72f, -0.705f, 0.08f, 10, uvSteel); // Base
+    obj.addCylinder(4.02f, -4.00f, -0.705f, -0.36f, 0.012f, 8, uvSteel); // Arm
+    obj.addBox(3.88f, -0.42f, -4.06f, 4.02f, -0.34f, -3.94f, uvSteel); // Shade
 
-    // --- A. DUAL HEAVY-DUTY VESA MONITOR ARM SYSTEM ---
-    // Desk C-Clamp mounted at the rear edge of desk
-    obj.addBox(3.32f, -0.74f, -4.26f, 3.40f, -0.70f, -4.18f, uvSteel);
-    // Vertical heavy steel riser pole
-    obj.addCylinder(3.36f, -4.22f, -0.70f, -0.32f, 0.022f, 10, uvSteel);
-    // Dual Articulated Mechanical Arms (Joints & Tubes)
-    // Left arm to primary monitor
-    obj.addBox(3.14f, -0.40f, -4.18f, 3.36f, -0.36f, -4.14f, uvSteel);
-    obj.addBox(3.12f, -0.42f, -4.14f, 3.16f, -0.34f, -4.08f, uvSteel); // VESA plate
-    // Right arm to secondary monitor
-    obj.addBox(3.36f, -0.40f, -4.18f, 3.68f, -0.36f, -4.10f, uvSteel);
-    obj.addBox(3.66f, -0.42f, -4.10f, 3.70f, -0.34f, -4.04f, uvSteel); // VESA plate
+    // Coffee Mug (#1 Boss)
+    obj.addCylinder(2.82f, -3.65f, -0.72f, -0.62f, 0.045f, 12, uvDrywall);
+    // Pen Holder
+    obj.addCylinder(4.10f, -3.65f, -0.72f, -0.60f, 0.038f, 10, uvSteel);
+    // Document Stacks / Binders on Manager's Desk
+    obj.addBox(3.10f, -0.72f, -3.95f, 3.45f, -0.67f, -3.65f, uvBooks);
+    obj.addBox(3.55f, -0.72f, -3.90f, 3.85f, -0.70f, -3.68f, uvDrywall);
 
-    // --- B. PRIMARY MONITOR (Center-Left: VS Code IDE) ---
-    // Monitor 1 Outer Bezel (Ultra-slim borderless design)
-    obj.addBox(2.80f, -0.58f, -4.07f, 3.45f, -0.16f, -4.03f, uvSteel);
-    // Monitor 1 Screen Quad (High-Res VS Code)
-    obj.addQuad(Vec3(2.81f, -0.57f, -4.025f), Vec3(3.44f, -0.57f, -4.025f),
-                Vec3(3.44f, -0.17f, -4.025f), Vec3(2.81f, -0.17f, -4.025f),
-                Vec2(uvScreenMain.u0, uvScreenMain.v0), Vec2(uvScreenMain.u1, uvScreenMain.v0),
-                Vec2(uvScreenMain.u1, uvScreenMain.v1), Vec2(uvScreenMain.u0, uvScreenMain.v1),
-                Vec3(0, 0, 1.0f));
-    // Screen Light Bar (Monitor Lightbar clamped on top)
-    obj.addCylinder(3.125f, -4.05f, -0.16f, -0.13f, 0.012f, 8, uvSteel); // Bar clamp
-    obj.addCylinder(3.125f, -4.03f, -0.14f, -0.13f, 0.16f, 10, uvSteel); // Horizontal LED tube
+    // Executive Office Chair (Behind the Desk)
+    float chairX = 3.35f, chairZ = -4.55f;
+    obj.addCylinder(chairX, chairZ, -1.50f, -1.45f, 0.32f, 8, uvSteel);
+    obj.addCylinder(chairX, chairZ, -1.45f, -1.05f, 0.035f, 8, uvSteel);
+    obj.addBox(chairX - 0.26f, -1.05f, chairZ - 0.26f, chairX + 0.26f, -0.97f, chairZ + 0.26f, uvDeskMat);
+    obj.addBox(chairX - 0.24f, -0.97f, chairZ - 0.28f, chairX + 0.24f, -0.35f, chairZ - 0.22f, uvDeskMat);
+    obj.addBox(chairX - 0.16f, -0.35f, chairZ - 0.27f, chairX + 0.16f, -0.22f, chairZ - 0.23f, uvDeskMat);
+    obj.addBox(chairX - 0.29f, -0.90f, chairZ - 0.15f, chairX - 0.25f, -0.72f, chairZ + 0.15f, uvSteel);
+    obj.addBox(chairX + 0.25f, -0.90f, chairZ - 0.15f, chairX + 0.29f, -0.72f, chairZ + 0.15f, uvSteel);
 
-    // --- C. SECONDARY MONITOR (Center-Right: Telemetry Dashboard, Angled 18 deg) ---
-    // We model the angled secondary monitor cleanly using quads
-    float m2L_X = 3.47f, m2L_Z = -4.05f;
-    float m2R_X = 4.04f, m2R_Z = -3.87f;
-    float m2B_Y = -0.58f, m2T_Y = -0.16f;
-    float m2Thick = 0.035f;
+    // ------------------------------------------------------------------------
+    // 8. BATTLESTATION COMPUTERS FOR THE 3 AI WORKERS (Image 3)
+    // Deepen AI Workers Workstation Desk (Prevents computers from floating!)
+    // As requested: "คอมลอยอยู่ในภาพที่ 1 ทำให้โต๊ะมันกว้างกว่านี้ ไม่ก็ขยับทำแหน่งคอม"
+    // Console runs from X = -2.50f to +2.50f
+    // Deepen desk in Z from -2.25f to -1.48f (0.77m total depth!)
+    // ------------------------------------------------------------------------
+    float dX0 = -2.50f, dX1 = 2.50f;
+    float dZ0 = -2.25f, dZ1 = -1.48f;
+    float dYTop = -0.859f, dYBot = -0.92f;
 
-    // Normal for 18-degree angled monitor
-    float angleRad = 18.0f * 3.14159265f / 180.0f;
-    Vec3 m2Norm(-std::sin(angleRad), 0, std::cos(angleRad));
+    // Solid Desktop Slab (matching console desk)
+    obj.addBox(dX0, dYBot, dZ0, dX1, dYTop, dZ1, uvDeskWood);
+    // Beveled Front Metal Edge Rail
+    obj.addBox(dX0, dYBot, dZ1 - 0.03f, dX1, dYTop + 0.005f, dZ1, uvSteel);
 
-    // Screen Quad
-    obj.addQuad(Vec3(m2L_X, m2B_Y, m2L_Z), Vec3(m2R_X, m2B_Y, m2R_Z),
-                Vec3(m2R_X, m2T_Y, m2R_Z), Vec3(m2L_X, m2T_Y, m2L_Z),
-                Vec2(uvScreenSec.u0, uvScreenSec.v0), Vec2(uvScreenSec.u1, uvScreenSec.v0),
-                Vec2(uvScreenSec.u1, uvScreenSec.v1), Vec2(uvScreenSec.u0, uvScreenSec.v1),
-                m2Norm);
-    // Back Cover Quad
-    obj.addQuad(Vec3(m2R_X, m2B_Y, m2R_Z - m2Thick), Vec3(m2L_X, m2B_Y, m2L_Z - m2Thick),
-                Vec3(m2L_X, m2T_Y, m2L_Z - m2Thick), Vec3(m2R_X, m2T_Y, m2R_Z - m2Thick),
-                Vec2(uvSteel.u0, uvSteel.v0), Vec2(uvSteel.u1, uvSteel.v0),
-                Vec2(uvSteel.u1, uvSteel.v1), Vec2(uvSteel.u0, uvSteel.v1),
-                Vec3(-m2Norm.x, 0, -m2Norm.z));
-    // Top & Bottom bezels
-    obj.addQuad(Vec3(m2L_X, m2T_Y, m2L_Z), Vec3(m2R_X, m2T_Y, m2R_Z),
-                Vec3(m2R_X, m2T_Y, m2R_Z - m2Thick), Vec3(m2L_X, m2T_Y, m2L_Z - m2Thick),
-                Vec2(uvSteel.u0, uvSteel.v0), Vec2(uvSteel.u1, uvSteel.v0),
-                Vec2(uvSteel.u1, uvSteel.v1), Vec2(uvSteel.u0, uvSteel.v1),
-                Vec3(0, 1.0f, 0));
-    obj.addQuad(Vec3(m2L_X, m2B_Y, m2L_Z - m2Thick), Vec3(m2R_X, m2B_Y, m2R_Z - m2Thick),
-                Vec3(m2R_X, m2B_Y, m2R_Z), Vec3(m2L_X, m2B_Y, m2L_Z),
-                Vec2(uvSteel.u0, uvSteel.v0), Vec2(uvSteel.u1, uvSteel.v0),
-                Vec2(uvSteel.u1, uvSteel.v1), Vec2(uvSteel.u0, uvSteel.v1),
-                Vec3(0, -1.0f, 0));
+    // Sturdy Metallic Desk Legs down to floor (Y = -1.50f)
+    float legXs[] = { -2.40f, -0.80f, 0.80f, 2.40f };
+    for (float lx : legXs) {
+        obj.addBox(lx - 0.04f, -1.50f, dZ1 - 0.08f, lx + 0.04f, dYBot, dZ1 - 0.02f, uvSteel);
+        // Base footplate
+        obj.addBox(lx - 0.06f, -1.50f, dZ1 - 0.16f, lx + 0.06f, -1.46f, dZ1 + 0.02f, uvSteel);
+    }
 
-    // Webcam on Secondary Monitor
-    obj.addBox(3.72f, -0.155f, -3.98f, 3.79f, -0.125f, -3.93f, uvSteel);
+    // Helper lambda to place a modern developer monitor + stand + keyboard + mouse
+    // Now positioned completely on the deepened desk, facing AI workers, with clean back (no black lines)!
+    auto addAIWorkstation = [&](float cx, UVBox screenUV, bool isCenter) {
+        float bW = 0.31f; // Half width (0.62m total)
+        float bH0 = -0.72f, bH1 = -0.38f;
+        // Position monitor centered on the deep desk
+        float bZ0 = -1.82f, bZ1 = -1.785f;
 
-    // --- D. HIGH-END CUSTOM PC TOWER (Right Side of Desk) ---
-    float pcMinX = 3.92f, pcMaxX = 4.22f; // Width 0.30m
-    float pcMinY = -0.705f, pcMaxY = -0.24f; // Height 0.465m
-    float pcMinZ = -4.15f, pcMaxZ = -3.65f; // Depth 0.50m
+        // --- Stand & Mounting (Riser pole & base placed behind the monitor on the +Z side) ---
+        // Stand base ends at Z = -1.685f (which is 20cm INSIDE the desk front edge at -1.48f!)
+        obj.addBox(cx - 0.11f, -0.859f, bZ1, cx + 0.11f, -0.850f, bZ1 + 0.10f, uvSteel); // Stand base
+        obj.addCylinder(cx, bZ1 + 0.03f, -0.850f, -0.55f, 0.015f, 8, uvSteel); // Riser pole behind monitor
+        // VESA Mount bracket connecting pole to monitor rear
+        obj.addBox(cx - 0.04f, -0.62f, bZ1, cx + 0.04f, -0.54f, bZ1 + 0.03f, uvSteel);
 
-    // 4 Rubber Case Feet
-    obj.addCylinder(pcMinX + 0.04f, pcMinZ + 0.05f, -0.72f, pcMinY, 0.015f, 6, uvSteel);
-    obj.addCylinder(pcMaxX - 0.04f, pcMinZ + 0.05f, -0.72f, pcMinY, 0.015f, 6, uvSteel);
-    obj.addCylinder(pcMinX + 0.04f, pcMaxZ - 0.05f, -0.72f, pcMinY, 0.015f, 6, uvSteel);
-    obj.addCylinder(pcMaxX - 0.04f, pcMaxZ - 0.05f, -0.72f, pcMinY, 0.015f, 6, uvSteel);
+        // --- Monitor Bezel Frame (Clean solid steel box - NO black lines or stray quads on back!) ---
+        obj.addBox(cx - bW, bH0, bZ0, cx + bW, bH1, bZ1, uvSteel);
 
-    // Case Chassis (Top, Bottom, Right, Back)
-    // Top
-    obj.addQuad(Vec3(pcMinX, pcMaxY, pcMaxZ), Vec3(pcMaxX, pcMaxY, pcMaxZ),
-                Vec3(pcMaxX, pcMaxY, pcMinZ), Vec3(pcMinX, pcMaxY, pcMinZ),
-                Vec2(uvSteel.u0, uvSteel.v0), Vec2(uvSteel.u1, uvSteel.v0),
-                Vec2(uvSteel.u1, uvSteel.v1), Vec2(uvSteel.u0, uvSteel.v1),
-                Vec3(0, 1.0f, 0));
-    // Bottom
-    obj.addQuad(Vec3(pcMinX, pcMinY, pcMinZ), Vec3(pcMaxX, pcMinY, pcMinZ),
-                Vec3(pcMaxX, pcMinY, pcMaxZ), Vec3(pcMinX, pcMinY, pcMaxZ),
-                Vec2(uvSteel.u0, uvSteel.v0), Vec2(uvSteel.u1, uvSteel.v0),
-                Vec2(uvSteel.u1, uvSteel.v1), Vec2(uvSteel.u0, uvSteel.v1),
-                Vec3(0, -1.0f, 0));
-    // Right panel (+X face)
-    obj.addQuad(Vec3(pcMaxX, pcMinY, pcMaxZ), Vec3(pcMaxX, pcMinY, pcMinZ),
-                Vec3(pcMaxX, pcMaxY, pcMinZ), Vec3(pcMaxX, pcMaxY, pcMaxZ),
-                Vec2(uvSteel.u0, uvSteel.v0), Vec2(uvSteel.u1, uvSteel.v0),
-                Vec2(uvSteel.u1, uvSteel.v1), Vec2(uvSteel.u0, uvSteel.v1),
-                Vec3(1.0f, 0, 0));
-    // Back panel (-Z face)
-    obj.addQuad(Vec3(pcMaxX, pcMinY, pcMinZ), Vec3(pcMinX, pcMinY, pcMinZ),
-                Vec3(pcMinX, pcMaxY, pcMinZ), Vec3(pcMaxX, pcMaxY, pcMinZ),
-                Vec2(uvSteel.u0, uvSteel.v0), Vec2(uvSteel.u1, uvSteel.v0),
-                Vec2(uvSteel.u1, uvSteel.v1), Vec2(uvSteel.u0, uvSteel.v1),
-                Vec3(0, 0, -1.0f));
+        // High-Res Screen Quad (Turned around to face -Z directly towards the AI Worker!)
+        obj.addQuad(Vec3(cx + bW - 0.01f, bH0 + 0.01f, bZ0 - 0.002f),
+                    Vec3(cx - bW + 0.01f, bH0 + 0.01f, bZ0 - 0.002f),
+                    Vec3(cx - bW + 0.01f, bH1 - 0.01f, bZ0 - 0.002f),
+                    Vec3(cx + bW - 0.01f, bH1 - 0.01f, bZ0 - 0.002f),
+                    Vec2(screenUV.u1, screenUV.v0), Vec2(screenUV.u0, screenUV.v0),
+                    Vec2(screenUV.u0, screenUV.v1), Vec2(screenUV.u1, screenUV.v1),
+                    Vec3(0, 0, -1.0f));
 
-    // Front Panel (+Z face: 3 Glowing RGB Fans!)
-    obj.addQuad(Vec3(pcMinX, pcMinY, pcMaxZ), Vec3(pcMaxX, pcMinY, pcMaxZ),
-                Vec3(pcMaxX, pcMaxY, pcMaxZ), Vec3(pcMinX, pcMaxY, pcMaxZ),
+        // Screen Top Accessory: Webcam on Center, Screenbar on Left/Right (both facing -Z towards worker)
+        if (isCenter) {
+            obj.addBox(cx - 0.035f, bH1, bZ0 - 0.015f, cx + 0.035f, bH1 + 0.030f, bZ0 + 0.015f, uvSteel);
+        } else {
+            obj.addBox(cx - 0.16f, bH1 + 0.012f, bZ0 - 0.020f, cx + 0.16f, bH1 + 0.025f, bZ0 + 0.005f, uvSteel);
+        }
+
+        // --- Desk Mat ---
+        obj.addQuad(Vec3(cx - 0.28f, -0.858f, -1.86f), Vec3(cx + 0.28f, -0.858f, -1.86f),
+                    Vec3(cx + 0.28f, -0.858f, -2.18f), Vec3(cx - 0.28f, -0.858f, -2.18f),
+                    Vec2(uvDeskMat.u0, uvDeskMat.v0), Vec2(uvDeskMat.u1, uvDeskMat.v0),
+                    Vec2(uvDeskMat.u1, uvDeskMat.v1), Vec2(uvDeskMat.u0, uvDeskMat.v1),
+                    Vec3(0, 1.0f, 0));
+
+        // --- Custom Mechanical Keyboard (Turned around to face the worker at -Z) ---
+        float kbW = 0.18f;
+        float kbFrontZ = -1.94f; // Farther from typist
+        float kbRearZ  = -2.14f; // Closer to typist's hands
+        float kbFrontY = -0.842f; // Tilted slightly up at the back
+        float kbRearY  = -0.855f; // Lower near typist's wrists
+        obj.addBox(cx - kbW, -0.858f, kbRearZ, cx + kbW, kbFrontY, kbFrontZ, uvSteel);
+        obj.addQuad(Vec3(cx - kbW, kbRearY, kbRearZ), Vec3(cx + kbW, kbRearY, kbRearZ),
+                    Vec3(cx + kbW, kbFrontY, kbFrontZ), Vec3(cx - kbW, kbFrontY, kbFrontZ),
+                    Vec2(uvKeyboard.u0, uvKeyboard.v0), Vec2(uvKeyboard.u1, uvKeyboard.v0),
+                    Vec2(uvKeyboard.u1, uvKeyboard.v1), Vec2(uvKeyboard.u0, uvKeyboard.v1),
+                    Vec3(0, 1.0f, 0));
+
+        // Ergonomic Mouse (Placed to the right of keyboard for typist: cx + kbW)
+        obj.addBox(cx + kbW + 0.02f, -0.857f, -2.09f, cx + kbW + 0.075f, -0.835f, -1.99f, uvSteel);
+    };
+
+    // 1. Left AI Worker Setup (X = -1.06f) - VS Code IDE
+    addAIWorkstation(-1.06f, uvScreenMain, false);
+
+    // 2. Center AI Worker Setup (X = 0.00f) - System Telemetry & Loss Curves
+    addAIWorkstation(0.00f, uvScreenSec, true);
+
+    // 3. Right AI Worker Setup (X = +1.06f) - VS Code IDE
+    addAIWorkstation(+1.06f, uvScreenMain, false);
+
+    // --- High-End Custom PC Towers on Console Wings ---
+    // Left Wing PC Tower (X = -1.70f to -1.45f)
+    float pcW = 0.25f, pcH = 0.38f, pcD = 0.38f;
+    float lpcX0 = -1.72f, lpcX1 = lpcX0 + pcW;
+    float lpcY0 = -0.859f, lpcY1 = lpcY0 + pcH;
+    float lpcZ0 = -2.15f, lpcZ1 = lpcZ0 + pcD;
+
+    obj.addBox(lpcX0, lpcY0, lpcZ0, lpcX1, lpcY1, lpcZ1, uvSteel);
+    // Front Face (+Z): 3 Glowing RGB Fans
+    obj.addQuad(Vec3(lpcX0, lpcY0, lpcZ1 + 0.002f), Vec3(lpcX1, lpcY0, lpcZ1 + 0.002f),
+                Vec3(lpcX1, lpcY1, lpcZ1 + 0.002f), Vec3(lpcX0, lpcY1, lpcZ1 + 0.002f),
                 Vec2(uvPCFront.u0, uvPCFront.v0), Vec2(uvPCFront.u1, uvPCFront.v0),
                 Vec2(uvPCFront.u1, uvPCFront.v1), Vec2(uvPCFront.u0, uvPCFront.v1),
                 Vec3(0, 0, 1.0f));
+    // Right Face (+X, facing inward): Tempered Glass Window with RTX 4090 GPU
+    obj.addQuad(Vec3(lpcX1 + 0.002f, lpcY0, lpcZ1), Vec3(lpcX1 + 0.002f, lpcY0, lpcZ0),
+                Vec3(lpcX1 + 0.002f, lpcY1, lpcZ0), Vec3(lpcX1 + 0.002f, lpcY1, lpcZ1),
+                Vec2(uvPCSide.u0, uvPCSide.v0), Vec2(uvPCSide.u1, uvPCSide.v0),
+                Vec2(uvPCSide.u1, uvPCSide.v1), Vec2(uvPCSide.u0, uvPCSide.v1),
+                Vec3(1.0f, 0, 0));
 
-    // Left Panel (-X face: Tempered Glass Window showing GPU / Cooler / RAM!)
-    obj.addQuad(Vec3(pcMinX, pcMinY, pcMinZ), Vec3(pcMinX, pcMinY, pcMaxZ),
-                Vec3(pcMinX, pcMaxY, pcMaxZ), Vec3(pcMinX, pcMaxY, pcMinZ),
+    // Right Wing PC Tower (X = +1.47f to +1.72f)
+    float rpcX0 = 1.47f, rpcX1 = rpcX0 + pcW;
+    obj.addBox(rpcX0, lpcY0, lpcZ0, rpcX1, lpcY1, lpcZ1, uvSteel);
+    // Front Face (+Z): 3 Glowing RGB Fans
+    obj.addQuad(Vec3(rpcX0, lpcY0, lpcZ1 + 0.002f), Vec3(rpcX1, lpcY0, lpcZ1 + 0.002f),
+                Vec3(rpcX1, lpcY1, lpcZ1 + 0.002f), Vec3(rpcX0, lpcY1, lpcZ1 + 0.002f),
+                Vec2(uvPCFront.u0, uvPCFront.v0), Vec2(uvPCFront.u1, uvPCFront.v0),
+                Vec2(uvPCFront.u1, uvPCFront.v1), Vec2(uvPCFront.u0, uvPCFront.v1),
+                Vec3(0, 0, 1.0f));
+    // Left Face (-X, facing inward): Tempered Glass Window with RTX 4090 GPU
+    obj.addQuad(Vec3(rpcX0 - 0.002f, lpcY0, lpcZ0), Vec3(rpcX0 - 0.002f, lpcY0, lpcZ1),
+                Vec3(rpcX0 - 0.002f, lpcY1, lpcZ1), Vec3(rpcX0 - 0.002f, lpcY1, lpcZ0),
                 Vec2(uvPCSide.u0, uvPCSide.v0), Vec2(uvPCSide.u1, uvPCSide.v0),
                 Vec2(uvPCSide.u1, uvPCSide.v1), Vec2(uvPCSide.u0, uvPCSide.v1),
                 Vec3(-1.0f, 0, 0));
 
-    // --- E. STUDIO MONITOR SPEAKERS (Left and Right of Monitors) ---
-    // Left Studio Speaker
-    obj.addBox(2.68f, -0.72f, -4.00f, 2.78f, -0.48f, -3.86f, uvSteel);
-    obj.addQuad(Vec3(2.68f, -0.72f, -3.858f), Vec3(2.78f, -0.72f, -3.858f),
-                Vec3(2.78f, -0.48f, -3.858f), Vec3(2.68f, -0.48f, -3.858f),
+    // Studio Speakers on Console
+    obj.addBox(-1.44f, -0.859f, -1.82f, -1.36f, -0.66f, -1.72f, uvSteel);
+    obj.addQuad(Vec3(-1.44f, -0.859f, -1.718f), Vec3(-1.36f, -0.859f, -1.718f),
+                Vec3(-1.36f, -0.66f, -1.718f), Vec3(-1.44f, -0.66f, -1.718f),
                 Vec2(uvSpeaker.u0, uvSpeaker.v0), Vec2(uvSpeaker.u1, uvSpeaker.v0),
                 Vec2(uvSpeaker.u1, uvSpeaker.v1), Vec2(uvSpeaker.u0, uvSpeaker.v1),
                 Vec3(0, 0, 1.0f));
 
-    // Right Studio Speaker
-    obj.addBox(3.78f, -0.72f, -4.16f, 3.88f, -0.48f, -4.02f, uvSteel);
-    obj.addQuad(Vec3(3.78f, -0.72f, -4.018f), Vec3(3.88f, -0.72f, -4.018f),
-                Vec3(3.88f, -0.48f, -4.018f), Vec3(3.78f, -0.48f, -4.018f),
+    obj.addBox(1.36f, -0.859f, -1.82f, 1.44f, -0.66f, -1.72f, uvSteel);
+    obj.addQuad(Vec3(1.36f, -0.859f, -1.718f), Vec3(1.44f, -0.859f, -1.718f),
+                Vec3(1.44f, -0.66f, -1.718f), Vec3(1.36f, -0.66f, -1.718f),
                 Vec2(uvSpeaker.u0, uvSpeaker.v0), Vec2(uvSpeaker.u1, uvSpeaker.v0),
                 Vec2(uvSpeaker.u1, uvSpeaker.v1), Vec2(uvSpeaker.u0, uvSpeaker.v1),
                 Vec3(0, 0, 1.0f));
 
-    // --- F. INPUT PERIPHERALS: KEYBOARD, MOUSE, DESK MAT, STREAM DECK ---
-    // Oversized Stitched Desk Mat
-    obj.addQuad(Vec3(2.92f, -0.718f, -3.48f), Vec3(3.88f, -0.718f, -3.48f),
-                Vec3(3.88f, -0.718f, -3.85f), Vec3(2.92f, -0.718f, -3.85f),
-                Vec2(uvRug.u0, uvRug.v0), Vec2(uvRug.u1, uvRug.v0),
-                Vec2(uvRug.u1, uvRug.v1), Vec2(uvRug.u0, uvRug.v1),
-                Vec3(0, 1.0f, 0));
-
-    // Custom 75% Mechanical Keyboard (Wedge Incline)
-    float kbMinX = 3.05f, kbMaxX = 3.52f;
-    float kbFrontZ = -3.55f, kbRearZ = -3.75f;
-    float kbFrontY = -0.715f, kbRearY = -0.698f;
-
-    // Keyboard Base
-    obj.addBox(kbMinX, -0.718f, kbRearZ, kbMaxX, kbFrontY, kbFrontZ, uvSteel);
-    // Keyboard Keycap Top Face (Angled)
-    obj.addQuad(Vec3(kbMinX, kbFrontY, kbFrontZ), Vec3(kbMaxX, kbFrontY, kbFrontZ),
-                Vec3(kbMaxX, kbRearY,  kbRearZ),  Vec3(kbMinX, kbRearY,  kbRearZ),
-                Vec2(uvKeyboard.u0, uvKeyboard.v0), Vec2(uvKeyboard.u1, uvKeyboard.v0),
-                Vec2(uvKeyboard.u1, uvKeyboard.v1), Vec2(uvKeyboard.u0, uvKeyboard.v1),
-                Vec3(0, 1.0f, 0));
-
-    // Coiled Aviator Cable (Spiral segment + straight line to PC)
-    obj.addBox(3.26f, -0.715f, -3.88f, 3.30f, -0.705f, -3.75f, uvSteel); // Straight
-    obj.addBox(3.24f, -0.715f, -3.92f, 3.32f, -0.700f, -3.88f, uvSteel); // Quick-release metal aviator
-    obj.addBox(3.32f, -0.715f, -3.95f, 3.92f, -0.708f, -3.92f, uvSteel); // Cable to PC Case!
-
-    // Ergonomic Gaming Mouse
-    float mX = 3.68f, mZ = -3.65f;
-    obj.addBox(mX - 0.045f, -0.715f, mZ - 0.065f, mX + 0.045f, -0.688f, mZ + 0.065f, uvSteel);
-
-    // Stream Deck (Macro Pad) on Left of Keyboard
-    obj.addBox(2.93f, -0.715f, -3.76f, 3.03f, -0.685f, -3.64f, uvSteel);
-
-    // --- G. HEADPHONE STAND & STUDIO HEADPHONES ---
-    float hpX = 2.65f, hpZ = -3.62f;
-    // Circular base
-    obj.addCylinder(hpX, hpZ, -0.72f, -0.708f, 0.055f, 10, uvSteel);
-    // Vertical rod
-    obj.addCylinder(hpX, hpZ, -0.708f, -0.38f, 0.008f, 8, uvSteel);
-    // Hanger hook
-    obj.addBox(hpX - 0.01f, -0.38f, hpZ - 0.04f, hpX + 0.01f, -0.365f, hpZ + 0.04f, uvSteel);
-    // Over-Ear Studio Headphones
-    obj.addBox(hpX - 0.025f, -0.48f, hpZ - 0.035f, hpX - 0.005f, -0.40f, hpZ + 0.035f, uvSpeaker); // Left earcup
-    obj.addBox(hpX + 0.005f, -0.48f, hpZ - 0.035f, hpX + 0.025f, -0.40f, hpZ + 0.035f, uvSpeaker); // Right earcup
-    obj.addBox(hpX - 0.02f, -0.40f, hpZ - 0.02f,  hpX + 0.02f, -0.37f, hpZ + 0.02f, uvSteel); // Headband
-
-    // Coffee Mug & Pen Holder
-    obj.addCylinder(2.82f, -3.50f, -0.72f, -0.62f, 0.045f, 12, uvDrywall);
-    obj.addCylinder(4.20f, -3.55f, -0.72f, -0.60f, 0.038f, 10, uvSteel);
-
-    // 9. Executive Office Chair (Behind the Desk)
-    float chairX = 3.35f, chairZ = -4.55f;
-    obj.addCylinder(chairX, chairZ, -1.50f, -1.45f, 0.32f, 8, uvSteel);
-    obj.addCylinder(chairX, chairZ, -1.45f, -1.05f, 0.035f, 8, uvSteel);
-    obj.addBox(chairX - 0.26f, -1.05f, chairZ - 0.26f, chairX + 0.26f, -0.97f, chairZ + 0.26f, uvRug);
-    obj.addBox(chairX - 0.24f, -0.97f, chairZ - 0.28f, chairX + 0.24f, -0.35f, chairZ - 0.22f, uvRug);
-    obj.addBox(chairX - 0.16f, -0.35f, chairZ - 0.27f, chairX + 0.16f, -0.22f, chairZ - 0.23f, uvRug);
-    obj.addBox(chairX - 0.29f, -0.90f, chairZ - 0.15f, chairX - 0.25f, -0.72f, chairZ + 0.15f, uvSteel);
-    obj.addBox(chairX + 0.25f, -0.90f, chairZ - 0.15f, chairX + 0.29f, -0.72f, chairZ + 0.15f, uvSteel);
-
-    // 10. Office Carpet Rug (Under Desk & Chair)
-    obj.addQuad(Vec3(2.4f, -1.498f, -3.2f), Vec3(4.35f, -1.498f, -3.2f),
-                Vec3(4.35f, -1.498f, -4.8f), Vec3(2.4f, -1.498f, -4.8f),
-                Vec2(uvRug.u0, uvRug.v0), Vec2(uvRug.u1, uvRug.v0),
-                Vec2(uvRug.u1, uvRug.v1), Vec2(uvRug.u0, uvRug.v1),
-                Vec3(0, 1.0f, 0));
-
-    // 11. Multi-Tier Bookshelf (Left Back Corner)
+    // ------------------------------------------------------------------------
+    // 9. Multi-Tier Bookshelf (Left Back Corner)
+    // ------------------------------------------------------------------------
     float bsMinX = -2.35f, bsMaxX = -1.1f;
     float bsMinZ = -4.95f, bsMaxZ = -4.45f;
-    obj.addBox(bsMinX, -1.5f, bsMinZ, bsMinX + 0.05f, 1.35f, bsMaxZ, uvDeskWood);
-    obj.addBox(bsMaxX - 0.05f, -1.5f, bsMinZ, bsMaxX, 1.35f, bsMaxZ, uvDeskWood);
+    obj.addBox(bsMinX, -1.50f, bsMinZ, bsMinX + 0.05f, 1.35f, bsMaxZ, uvDeskWood);
+    obj.addBox(bsMaxX - 0.05f, -1.50f, bsMinZ, bsMaxX, 1.35f, bsMaxZ, uvDeskWood);
     obj.addBox(bsMinX, 1.30f, bsMinZ, bsMaxX, 1.35f, bsMaxZ, uvDeskWood);
-    obj.addBox(bsMinX, -1.5f, bsMinZ, bsMaxX, 1.35f, bsMinZ + 0.03f, uvDeskWood);
+    obj.addBox(bsMinX, -1.50f, bsMinZ, bsMaxX, 1.35f, bsMinZ + 0.03f, uvDeskWood);
     float shelfHeights[] = { -1.45f, -0.85f, -0.25f, 0.35f, 0.95f };
     for (float sy : shelfHeights) {
         obj.addBox(bsMinX + 0.05f, sy, bsMinZ + 0.03f, bsMaxX - 0.05f, sy + 0.04f, bsMaxZ, uvDeskWood);
     }
     obj.addBox(bsMinX + 0.08f, -0.81f, bsMinZ + 0.06f, bsMaxX - 0.15f, -0.32f, bsMaxZ - 0.05f, uvBooks);
     obj.addBox(bsMinX + 0.15f, -0.21f, bsMinZ + 0.06f, bsMaxX - 0.25f,  0.28f, bsMaxZ - 0.05f, uvBooks);
-    obj.addCylinder(-1.72f, -4.68f, 0.39f, 0.44f, 0.08f, 10, uvPoster);
-    obj.addCylinder(-1.72f, -4.68f, 0.44f, 0.70f, 0.05f, 10, uvPoster);
+    // Cylinder trophy removed as requested in Image 2!
 
-    // 12. Potted Office Plant (Beside the Window)
-    float plantX = -1.95f, plantZ = -2.00f;
-    obj.addCylinder(plantX, plantZ, -1.50f, -0.95f, 0.22f, 16, uvDrywall);
-    obj.addCylinder(plantX, plantZ, -0.96f, -0.94f, 0.20f, 16, uvDeskWood);
-    obj.addBox(plantX - 0.28f, -0.94f, plantZ - 0.28f, plantX + 0.28f, -0.25f, plantZ + 0.28f, uvFoliage);
-    obj.addBox(plantX - 0.18f, -0.25f, plantZ - 0.18f, plantX + 0.18f,  0.15f, plantZ + 0.18f, uvFoliage);
+    // ------------------------------------------------------------------------
+    // 10. Potted Office Plant (Beside the Window, Free of the Desk!)
+    // As requested: "ต้นไม้โดนทับ ให้ปรับตัวแหน่งต้นไม้"
+    // Repositioned to the open floor by the window at Z = -0.40f (1m clear of desk at -1.48f)
+    // ------------------------------------------------------------------------
+    float plantX = -2.05f, plantZ = -0.40f;
+    obj.addCylinder(plantX, plantZ, -1.50f, -0.95f, 0.22f, 16, uvDrywall); // Ceramic pot
+    obj.addCylinder(plantX, plantZ, -0.96f, -0.93f, 0.20f, 16, uvDeskWood); // Dark soil
+    obj.addBox(plantX - 0.28f, -0.93f, plantZ - 0.28f, plantX + 0.28f, -0.25f, plantZ + 0.28f, uvFoliage);
+    obj.addBox(plantX - 0.18f, -0.25f, plantZ - 0.18f, plantX + 0.18f,  0.18f, plantZ + 0.18f, uvFoliage);
+    obj.addBox(plantX - 0.10f,  0.18f, plantZ - 0.10f, plantX + 0.10f,  0.42f, plantZ + 0.10f, uvFoliage);
 
-    // 13. Floor Hazard / Caution Strip (In front of AI workers)
-    obj.addQuad(Vec3(-1.6f, -1.497f, -1.80f), Vec3( 1.6f, -1.497f, -1.80f),
-                Vec3( 1.6f, -1.497f, -1.95f), Vec3(-1.6f, -1.497f, -1.95f),
-                Vec2(uvCaution.u0, uvCaution.v0), Vec2(uvCaution.u1, uvCaution.v0),
-                Vec2(uvCaution.u1, uvCaution.v1), Vec2(uvCaution.u0, uvCaution.v1),
-                Vec3(0, 1.0f, 0));
-
-    // 14. Wastebasket next to manager desk
-    obj.addCylinder(2.52f, -3.55f, -1.5f, -1.15f, 0.12f, 12, uvSteel);
+    // ------------------------------------------------------------------------
+    // 11. Wastebasket next to manager desk
+    // ------------------------------------------------------------------------
+    obj.addCylinder(2.52f, -3.55f, -1.50f, -1.15f, 0.12f, 12, uvSteel);
 
     obj.saveOBJ("Models/scene_room.obj");
     std::cout << "[generate_office] Saved Models/scene_room.obj (" << obj.vertices.size() << " vertices, " << obj.faces.size() << " faces)\n";

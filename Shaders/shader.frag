@@ -56,8 +56,8 @@ vec3 diffuseLight()
 
 vec3 specularLight()
 {
-    float specularStrength = 0.8f;
-    float shininess = 64.0f;
+    float specularStrength = 0.35f;
+    float shininess = 32.0f;
     vec3 norm = normalize(Normal);
     vec3 viewDir = normalize(viewPos - FragPos);
     vec3 lightDir = normalize(lightPos - FragPos);
